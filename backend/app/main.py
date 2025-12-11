@@ -4,16 +4,31 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-from .database import engine, Base
+from .database import engine, Base, SessionLocal
 from .routers import players, games, stats
 from . import models
-
-# create DB tables
-Base.metadata.create_all(bind=engine)
+from .database import seed_players
 
 app = FastAPI(title="Coffee Game API")
 
-# CORS (frontend served from same origin, but keep permissive)
+# ───────────────────────────────
+# DATABASE INIT + SEED ON STARTUP
+# ───────────────────────────────
+
+@app.on_event("startup")
+def startup_event():
+    # create DB tables
+    Base.metadata.create_all(bind=engine)
+
+    # seed players
+    db = SessionLocal()
+    seed_players(db)
+    db.close()
+
+
+# ───────────────────────────────
+# CORS CONFIG
+# ───────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,12 +41,14 @@ app.include_router(players.router)
 app.include_router(games.router)
 app.include_router(stats.router)
 
-# Serve frontend_dist static files
+# ───────────────────────────────
+# SERVE FRONTEND
+# ───────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIST = BASE_DIR.parent / "frontend_dist"
 
 if FRONTEND_DIST.exists():
-    # serve assets and index
+    # serve assets and index.html
     assets_dir = FRONTEND_DIST / "assets"
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
@@ -42,6 +59,7 @@ if FRONTEND_DIST.exists():
         if index_file.exists():
             return FileResponse(str(index_file))
         return {"error": "index.html not found"}
+
 else:
     @app.get("/", include_in_schema=False)
     def placeholder():
