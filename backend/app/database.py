@@ -1,6 +1,5 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from . import models
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./coffee.db"
 
