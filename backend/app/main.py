@@ -19,7 +19,10 @@ app = FastAPI(title="Coffee Game API")
 def startup_event():
     # create DB tables
     Base.metadata.create_all(bind=engine)
-    db.commit()    
+
+    # seed players
+    db = SessionLocal()
+    seed_players(db)
     db.close()
 
 
