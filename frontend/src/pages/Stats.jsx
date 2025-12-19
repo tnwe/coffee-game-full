@@ -1,70 +1,108 @@
 import { useEffect, useState } from "react";
-import { Bar, Doughnut } from "react-chartjs-2";
 import {
-  Chart as ChartJS,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  ArcElement,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
   Tooltip,
-  Legend
-} from "chart.js";
-
-ChartJS.register(BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend);
+  Legend,
+  ResponsiveContainer
+} from "recharts";
 
 export default function Stats() {
   const [stats, setStats] = useState(null);
-  const [games, setGames] = useState([]);
 
   useEffect(() => {
-    fetch("/api/stats").then(r=>r.json()).then(setStats);
-    fetch("/api/games").then(r=>r.json()).then(setGames);
+    fetch("/api/stats/")
+      .then(r => r.json())
+      .then(setStats);
   }, []);
 
-  if (!stats) return <div className="p-4">Loading...</div>;
+  if (!stats) return <div className="p-4">Chargement…</div>;
 
-  const payersLabels = stats.payers.map(p => p[0]);
-  const payersData = stats.payers.map(p => p[1]);
+  /* =======================
+     CALCULS
+  ======================= */
 
-  const dblLabels = stats.doublettes_by_player.map(d => d[0]);
-  const dblData = stats.doublettes_by_player.map(d => d[1]);
+  const totalGames = stats.total_games;
+
+  const coffeesDrunk = stats.participations.reduce(
+    (sum, [, count]) => sum + count,
+    0
+  );
+
+  // map name -> counts
+  const payMap = Object.fromEntries(stats.payers);
+  const fetchMap = Object.fromEntries(stats.fetchers);
+
+  const players = Array.from(
+    new Set([
+      ...stats.payers.map(p => p[0]),
+      ...stats.fetchers.map(f => f[0]),
+      ...stats.participations.map(p => p[0])
+    ])
+  );
+
+  const scoreData = players.map(name => {
+    const paid = payMap[name] || 0;
+    const fetched = fetchMap[name] || 0;
+    return {
+      name,
+      payé: paid,
+      cherché: fetched,
+      score: paid + fetched
+    };
+  });
+
+  const podium = [...scoreData]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+
+  /* =======================
+     RENDER
+  ======================= */
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
-      <div className="bg-white p-4 rounded shadow">
-        <h2 className="font-semibold">Résumé</h2>
-        <p>Total parties : {stats.total_games}</p>
-        <p>Doublettes totales : {stats.total_doublettes}</p>
-      </div>
+    <div className="max-w-6xl mx-auto p-4">
+      <h2 className="text-lg font-semibold mb-6">Statistiques</h2>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* ===== RÉSUMÉ ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-white p-4 rounded shadow">
-          <h3 className="font-semibold mb-2">Paiements par personne</h3>
-          <Bar data={{
-            labels: payersLabels,
-            datasets: [{ label: "Paiements", data: payersData, backgroundColor: "#6F4E37" }]
-          }} />
+          <div className="text-gray-500 text-sm">Parties enregistrées</div>
+          <div className="text-2xl font-bold">{totalGames}</div>
         </div>
 
         <div className="bg-white p-4 rounded shadow">
-          <h3 className="font-semibold mb-2">Doublettes par personne</h3>
-          <Doughnut data={{
-            labels: dblLabels,
-            datasets: [{ data: dblData, backgroundColor: ["#6F4E37", "#C4A484", "#D9B99B", "#8C6B4B"] }]
-          }} />
+          <div className="text-gray-500 text-sm">Cafés bus</div>
+          <div className="text-2xl font-bold">{coffeesDrunk}</div>
         </div>
-      </div>
 
-      <div className="bg-white p-4 rounded shadow">
-        <h3 className="font-semibold mb-2">Historique</h3>
-        <ul className="space-y-2">
-          {games.map(g => (
-            <li key={g.id} className="p-2 border rounded">
-              <strong>{g.date}</strong> — payé : <b>{g.payer_name}</b>, fetch : <b>{g.fetcher_name}</b>
-              {g.payer_id === g.fetcher_id && <span className="ml-3 inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Doublette</span>}
-            </li>
+        <div className="bg-white p-4 rounded shadow">
+          <div className="text-gray-500 text-sm mb-2">Podium</div>
+          {podium.map((p, i) => (
+            <div key={p.name} className="flex justify-between">
+              <span>{i + 1}. {p.name}</span>
+              <span className="font-semibold">{p.score}</span>
+            </div>
           ))}
-        </ul>
+        </div>
+      </div>
+
+      {/* ===== GRAPHE SCORE ===== */}
+      <div className="bg-white p-4 rounded shadow">
+        <h3 className="font-semibold mb-4">Score par joueur</h3>
+
+        <ResponsiveContainer width="100%" height={320}>
+          <BarChart data={scoreData}>
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="payé" stackId="a" fill="#8b5cf6" />
+            <Bar dataKey="cherché" stackId="a" fill="#22c55e" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
