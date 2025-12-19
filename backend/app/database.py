@@ -7,7 +7,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 print(">>> DATABASE_URL =", DATABASE_URL)
 
 # SQLite
-if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         DATABASE_URL,
         connect_args={"check_same_thread": False}
