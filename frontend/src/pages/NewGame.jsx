@@ -11,6 +11,12 @@ export default function NewGame() {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
 
+  // tirage au sort
+  const [step, setStep] = useState("select"); 
+  // select | draw_payer | draw_fetcher | done
+  const [rollingName, setRollingName] = useState(null);
+  const [rolling, setRolling] = useState(false);
+
   function loadPlayers() {
     fetch("/api/players/")
       .then((r) => r.json())
@@ -53,6 +59,45 @@ export default function NewGame() {
     setAdding(false);
   }
 
+  function getParticipants() {
+    return players.filter((p) => played[p.id]);
+  }
+
+  function startDraw(type) {
+    const participants = getParticipants();
+    if (participants.length === 0) {
+      setError("Sélectionne au moins un joueur avant le tirage.");
+      return;
+    }
+
+    setError(null);
+    setRolling(true);
+    setRollingName(null);
+
+    let i = 0;
+    const interval = setInterval(() => {
+      setRollingName(participants[i % participants.length].name);
+      i++;
+    }, 80);
+
+    setTimeout(() => {
+      clearInterval(interval);
+      const winner =
+        participants[Math.floor(Math.random() * participants.length)];
+
+      setRolling(false);
+      setRollingName(winner.name);
+
+      if (type === "payer") {
+        setPayer(winner.id);
+        setStep("draw_fetcher");
+      } else {
+        setFetcher(winner.id);
+        setStep("done");
+      }
+    }, 2000);
+  }
+
   async function submit(e) {
     e.preventDefault();
     setError(null);
@@ -82,6 +127,7 @@ export default function NewGame() {
       setPlayed({});
       setPayer(null);
       setFetcher(null);
+      setStep("select");
     } else {
       setError("Erreur lors de l'enregistrement");
     }
@@ -108,6 +154,7 @@ export default function NewGame() {
           />
         </label>
 
+        {/* TABLEAU JOUEURS */}
         <table className="w-full text-sm mb-4">
           <thead>
             <tr className="bg-gray-100">
@@ -160,6 +207,50 @@ export default function NewGame() {
             })}
           </tbody>
         </table>
+
+        {/* TIRAGES AU SORT */}
+        {step === "select" && (
+          <button
+            type="button"
+            onClick={() => setStep("draw_payer")}
+            className="bg-blue-600 text-white px-4 py-2 rounded mb-3"
+          >
+            🎲 Tirer au sort
+          </button>
+        )}
+
+        {(step === "draw_payer" || step === "draw_fetcher") && (
+          <div className="bg-gray-50 p-4 rounded mb-3 text-center">
+            <h3 className="font-semibold mb-2">
+              {step === "draw_payer"
+                ? "Qui paye le café ?"
+                : "Qui va chercher le café ?"}
+            </h3>
+
+            <div className="text-2xl font-bold h-10">
+              {rollingName || "—"}
+            </div>
+
+            {!rolling && (
+              <button
+                type="button"
+                onClick={() =>
+                  startDraw(step === "draw_payer" ? "payer" : "fetcher")
+                }
+                className="mt-3 bg-coffee text-white px-4 py-2 rounded"
+              >
+                Lancer le tirage
+              </button>
+            )}
+          </div>
+        )}
+
+        {step === "done" && (
+          <div className="bg-green-50 p-4 rounded mb-3">
+            <p>☕ Payeur : {players.find(p => p.id === payer)?.name}</p>
+            <p>🚶‍♂️ Cherché : {players.find(p => p.id === fetcher)?.name}</p>
+          </div>
+        )}
 
         <button
           className="bg-coffee text-white px-4 py-2 rounded"
