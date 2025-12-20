@@ -104,6 +104,39 @@ export default function Stats() {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+{/* ===== HISTORIQUE ===== */}
+      <div className="bg-white p-4 rounded shadow">
+        <h3 className="font-semibold mb-4">Historique des parties</h3>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="p-2 text-left">Date</th>
+              <th className="p-2">Participants</th>
+              <th className="p-2">Payé</th>
+              <th className="p-2">Cherché</th>
+            </tr>
+          </thead>
+          <tbody>
+            {games.map((g) => (
+              <tr key={g.id} className="border-b">
+                <td className="p-2">{g.date}</td>
+                <td className="p-2 text-center">
+                  {g.players?.length || 0}
+                </td>
+                <td className="p-2 text-center">
+                  {players.find((p) => p.id === g.payer)?.name || "-"}
+                </td>
+                <td className="p-2 text-center">
+                  {players.find((p) => p.id === g.fetcher)?.name || "-"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
     </div>
   );
 }
