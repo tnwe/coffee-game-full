@@ -248,7 +248,7 @@ export default function NewGame() {
         {step === "done" && (
           <div className="bg-green-50 p-4 rounded mb-3">
             <p>☕ Payeur : {players.find(p => p.id === payer)?.name}</p>
-            <p>🚶‍♂️ Cherché : {players.find(p => p.id === fetcher)?.name}</p>
+            <p>🚶‍♂️ Chercheur : {players.find(p => p.id === fetcher)?.name}</p>
           </div>
         )}
 
