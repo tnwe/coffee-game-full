@@ -159,9 +159,9 @@ export default function NewGame() {
           <thead>
             <tr className="bg-gray-100">
               <th className="p-2 text-left">Joueur</th>
-              <th className="p-2">A joué</th>
-              <th className="p-2">A payé</th>
-              <th className="p-2">Est allé chercher</th>
+              <th className="p-2">Joue</th>
+              <th className="p-2">Paie</th>
+              <th className="p-2">Va chercher</th>
             </tr>
           </thead>
           <tbody>
@@ -247,8 +247,8 @@ export default function NewGame() {
 
         {step === "done" && (
           <div className="bg-green-50 p-4 rounded mb-3">
-            <p>☕ Payeur : {players.find(p => p.id === payer)?.name}</p>
-            <p>🚶‍♂️ Chercheur : {players.find(p => p.id === fetcher)?.name}</p>
+            <p>☕ Paye : {players.find(p => p.id === payer)?.name}</p>
+            <p>🚶‍♂️ Va chercher : {players.find(p => p.id === fetcher)?.name}</p>
           </div>
         )}
 
