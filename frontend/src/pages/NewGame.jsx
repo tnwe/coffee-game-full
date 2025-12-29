@@ -8,7 +8,7 @@ export default function NewGame() {
   const [fetcher, setFetcher] = useState(null);
 
   const [mode, setMode] = useState("manual"); // manual | draw
-  const [step, setStep] = useState("select"); // select | payer | fetcher | done
+  const [step, setStep] = useState("payer"); // payer | fetcher | done
 
   const [newPlayer, setNewPlayer] = useState("");
   const [adding, setAdding] = useState(false);
@@ -16,11 +16,13 @@ export default function NewGame() {
 
   /* ===== ROULETTE ===== */
   const wheelRef = useRef(null);
-  const angleRef = useRef(0);
-  const speedRef = useRef(0);
-  const slowingRef = useRef(false);
-  const rafRef = useRef(null);
+  const spinInterval = useRef(null);
+  const rotation = useRef(0);
+  const speed = useRef(0);
 
+  /* =======================
+     LOAD PLAYERS
+  ======================= */
   function loadPlayers() {
     fetch("/api/players/")
       .then((r) => r.json())
@@ -31,6 +33,9 @@ export default function NewGame() {
     loadPlayers();
   }, []);
 
+  /* =======================
+     HELPERS
+  ======================= */
   function togglePlayed(id) {
     setPlayed((prev) => {
       const next = { ...prev, [id]: !prev[id] };
@@ -46,90 +51,111 @@ export default function NewGame() {
     return players.filter((p) => played[p.id]);
   }
 
-  /* ===== ROULETTE LOGIC ===== */
+  /* =======================
+     ROULETTE LOGIC
+  ======================= */
   function spinWheel() {
     if (participants().length === 0) {
       setError("Sélectionne au moins un joueur.");
       return;
     }
-
     setError(null);
-    speedRef.current = 0.3;
-    slowingRef.current = false;
 
-    function animate() {
-      angleRef.current += speedRef.current;
-      if (slowingRef.current) {
-        speedRef.current *= 0.985;
-        if (speedRef.current < 0.002) {
-          stopWheel();
-          return;
-        }
-      }
-      wheelRef.current.style.transform =
-        `rotate(${angleRef.current}rad)`;
-      rafRef.current = requestAnimationFrame(animate);
-    }
+    speed.current = 25;
 
-    animate();
+    spinInterval.current = setInterval(() => {
+      rotation.current += speed.current;
+      wheelRef.current.style.transform = `rotate(${rotation.current}deg)`;
+    }, 16);
   }
 
   function stopWheel() {
-    slowingRef.current = true;
+    const slowDown = setInterval(() => {
+      speed.current *= 0.97;
 
-    setTimeout(() => {
-      cancelAnimationFrame(rafRef.current);
+      if (speed.current < 0.5) {
+        clearInterval(slowDown);
+        clearInterval(spinInterval.current);
 
-      const items = participants();
-      const slice = (2 * Math.PI) / items.length;
-      const index =
-        items.length -
-        Math.floor((angleRef.current % (2 * Math.PI)) / slice) - 1;
+        const list = participants();
+        const angle = rotation.current % 360;
+        const slice = 360 / list.length;
+        const index =
+          Math.floor((360 - angle) / slice) % list.length;
 
-      const winner = items[(index + items.length) % items.length];
+        const winner = list[index];
 
-      if (step === "payer") {
-        setPayer(winner.id);
-        setStep("fetcher");
-      } else {
-        setFetcher(winner.id);
-        setStep("done");
+        if (step === "payer") {
+          setPayer(winner.id);
+          setStep("fetcher");
+        } else {
+          setFetcher(winner.id);
+          setStep("done");
+        }
       }
-    }, 1200);
+    }, 30);
   }
 
-  /* ===== SUBMIT ===== */
+  /* =======================
+     SUBMIT
+  ======================= */
   async function submit(e) {
     e.preventDefault();
+    setError(null);
 
     const selectedPlayers = Object.keys(played).filter((id) => played[id]);
-    if (!selectedPlayers.length) {
+    if (selectedPlayers.length === 0) {
       setError("Sélectionne au moins un joueur.");
       return;
     }
 
-    await fetch("/api/games/", {
+    const payload = {
+      date,
+      players: selectedPlayers.map(Number),
+      payer,
+      fetcher,
+    };
+
+    const res = await fetch("/api/games/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date,
-        players: selectedPlayers.map(Number),
-        payer,
-        fetcher,
-      }),
+      body: JSON.stringify(payload),
     });
 
-    alert("Partie enregistrée");
-    setPlayed({});
-    setPayer(null);
-    setFetcher(null);
-    setStep("select");
+    if (res.ok) {
+      alert("Partie enregistrée");
+      setPlayed({});
+      setPayer(null);
+      setFetcher(null);
+      setStep("payer");
+      setMode("manual");
+    } else {
+      setError("Erreur lors de l'enregistrement");
+    }
   }
 
-  const payerName = players.find((p) => p.id === payer)?.name;
-  const fetcherName = players.find((p) => p.id === fetcher)?.name;
-  const doublette = payer && fetcher && payer === fetcher;
+  /* =======================
+     ADD PLAYER
+  ======================= */
+  async function addPlayer() {
+    if (!newPlayer.trim()) return;
+    setAdding(true);
 
+    const res = await fetch(
+      `/api/players/?name=${encodeURIComponent(newPlayer)}`,
+      { method: "POST" }
+    );
+
+    if (res.ok) {
+      setNewPlayer("");
+      loadPlayers();
+    }
+    setAdding(false);
+  }
+
+  /* =======================
+     RENDER
+  ======================= */
   return (
     <div className="max-w-4xl mx-auto p-4">
       <h2 className="text-lg font-semibold mb-4">Nouvelle partie</h2>
@@ -141,23 +167,15 @@ export default function NewGame() {
           </div>
         )}
 
-        <label className="block mb-3">
-          Date
-          <input
-            type="date"
-            className="border p-2 ml-3"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </label>
-
         {/* MODE */}
-        <div className="flex gap-3 mb-4">
+        <div className="flex gap-4 mb-4">
           <button
             type="button"
             onClick={() => setMode("manual")}
-            className={`px-3 py-1 rounded ${
-              mode === "manual" ? "bg-blue-600 text-white" : "bg-gray-200"
+            className={`px-4 py-2 rounded ${
+              mode === "manual"
+                ? "bg-coffee text-white"
+                : "bg-gray-200"
             }`}
           >
             Mode manuel
@@ -165,123 +183,184 @@ export default function NewGame() {
           <button
             type="button"
             onClick={() => setMode("draw")}
-            className={`px-3 py-1 rounded ${
-              mode === "draw" ? "bg-blue-600 text-white" : "bg-gray-200"
+            className={`px-4 py-2 rounded ${
+              mode === "draw"
+                ? "bg-coffee text-white"
+                : "bg-gray-200"
             }`}
           >
             Mode tirage
           </button>
         </div>
 
+        {/* DATE */}
+        <label className="block mb-3">
+          Date
+          <input
+            className="border p-2 ml-3"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </label>
+
         {/* TABLE */}
         <table className="w-full text-sm mb-4">
           <thead>
             <tr className="bg-gray-100">
-              <th>Joueur</th>
-              <th>Joue</th>
-              <th>Paye</th>
-              <th>Cherche</th>
+              <th className="p-2 text-left">Joueur</th>
+              <th className="p-2 text-center">Joue</th>
+              <th className="p-2 text-center">Paie</th>
+              <th className="p-2 text-center">Cherche</th>
             </tr>
           </thead>
           <tbody>
-            {players.map((p) => (
-              <tr key={p.id} className={!played[p.id] ? "opacity-50" : ""}>
-                <td>{p.name}</td>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={!!played[p.id]}
-                    onChange={() => togglePlayed(p.id)}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="radio"
-                    disabled={mode === "draw"}
-                    checked={payer === p.id}
-                    onChange={() => setPayer(p.id)}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="radio"
-                    disabled={mode === "draw"}
-                    checked={fetcher === p.id}
-                    onChange={() => setFetcher(p.id)}
-                  />
-                </td>
-              </tr>
-            ))}
+            {players.map((p) => {
+              const hasPlayed = !!played[p.id];
+              return (
+                <tr
+                  key={p.id}
+                  className={`border-b ${
+                    !hasPlayed ? "opacity-50" : ""
+                  }`}
+                >
+                  <td className="p-2">{p.name}</td>
+                  <td className="p-2 text-center align-middle">
+                    <input
+                      type="checkbox"
+                      checked={hasPlayed}
+                      onChange={() => togglePlayed(p.id)}
+                    />
+                  </td>
+                  <td className="p-2 text-center align-middle">
+                    <input
+                      type="radio"
+                      name="payer"
+                      disabled={!hasPlayed || mode === "draw"}
+                      checked={payer === p.id}
+                      onChange={() => setPayer(p.id)}
+                    />
+                  </td>
+                  <td className="p-2 text-center align-middle">
+                    <input
+                      type="radio"
+                      name="fetcher"
+                      disabled={!hasPlayed || mode === "draw"}
+                      checked={fetcher === p.id}
+                      onChange={() => setFetcher(p.id)}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
         {/* ROULETTE */}
         {mode === "draw" && (
-          <div className="text-center mb-4">
-            <div className="relative w-64 h-64 mx-auto mb-4">
+          <div className="text-center mb-6">
+            <div className="relative w-72 h-72 mx-auto mb-6">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-2xl z-10">
+                ▼
+              </div>
+
               <div
                 ref={wheelRef}
-                className="w-full h-full rounded-full border-4 border-coffee relative transition-transform"
+                className="w-full h-full rounded-full border-8 border-gray-700 shadow-lg relative overflow-hidden transition-transform"
               >
-                {participants().map((p, i) => (
-                  <div
-                    key={p.id}
-                    className="absolute left-1/2 top-1/2 origin-left text-sm"
-                    style={{
-                      transform: `rotate(${(360 / participants().length) * i}deg) translateX(120px)`,
-                    }}
-                  >
-                    {p.name}
-                  </div>
-                ))}
-              </div>
-              <div className="absolute top-[-10px] left-1/2 -translate-x-1/2">
-                ▲
+                {participants().map((p, i) => {
+                  const total = participants().length;
+                  const angle = 360 / total;
+                  return (
+                    <div
+                      key={p.id}
+                      className="absolute w-1/2 h-1/2 top-1/2 left-1/2 origin-bottom-left"
+                      style={{
+                        transform: `rotate(${angle * i}deg)`,
+                        backgroundColor: `hsl(${(i * 360) / total},70%,60%)`,
+                        clipPath:
+                          "polygon(0 0,100% 0,0 100%)",
+                      }}
+                    >
+                      <div
+                        className="absolute left-2 top-6 text-xs font-bold text-white"
+                        style={{
+                          transform: `rotate(${angle / 2}deg)`,
+                        }}
+                      >
+                        {p.name}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-4">
               <button
                 type="button"
-                onClick={() => {
-                  setStep("payer");
-                  spinWheel();
-                }}
-                className="bg-blue-600 text-white px-4 py-2 rounded"
+                onClick={spinWheel}
+                className="bg-green-600 text-white px-4 py-2 rounded"
               >
-                Lancer la roulette
+                🎯 Lancer la roulette
               </button>
               <button
                 type="button"
                 onClick={stopWheel}
                 className="bg-red-600 text-white px-4 py-2 rounded"
               >
-                Stop
+                ⛔ Stop
               </button>
             </div>
 
-            {step !== "select" && payerName && (
-              <p className="mt-3 font-bold">☕ Payeur : {payerName}</p>
-            )}
-          </div>
-        )}
-
-        {step === "done" && (
-          <div className="bg-green-50 p-3 rounded text-center mb-3">
-            <p className="font-bold">☕ Paye : {payerName}</p>
-            <p className="font-bold">🚶‍♂️ Cherche : {fetcherName}</p>
-            {doublette && (
-              <p className="mt-2 text-sm bg-yellow-200 inline-block px-3 py-1 rounded">
-                🎉 Doublette !
+            {payer && step === "fetcher" && (
+              <p className="mt-4 font-bold">
+                ☕ Payeur :{" "}
+                {players.find((p) => p.id === payer)?.name}
               </p>
             )}
           </div>
         )}
 
-        <button className="bg-coffee text-white px-4 py-2 rounded">
+        {step === "done" && (
+          <div className="bg-green-50 p-3 rounded mb-3">
+            ☕ Paye : {players.find((p) => p.id === payer)?.name}
+            <br />
+            🚶‍♂️ Cherche :{" "}
+            {players.find((p) => p.id === fetcher)?.name}
+            {payer === fetcher && (
+              <div className="mt-2 font-bold text-yellow-700">
+                🎉 Doublette !
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          className="bg-coffee text-white px-4 py-2 rounded"
+          type="submit"
+        >
           Enregistrer
         </button>
       </form>
+
+      {/* AJOUT JOUEUR */}
+      <div className="bg-white p-4 rounded shadow mt-6 flex gap-3">
+        <input
+          className="border p-2 flex-1"
+          placeholder="Nouveau joueur"
+          value={newPlayer}
+          onChange={(e) => setNewPlayer(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={addPlayer}
+          disabled={adding}
+          className="bg-green-600 text-white px-4 py-2 rounded"
+        >
+          Ajouter
+        </button>
+      </div>
     </div>
   );
 }
