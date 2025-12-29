@@ -41,21 +41,32 @@ export default function Stats() {
   const fetchMap = Object.fromEntries(stats.fetchers);
   const partMap = Object.fromEntries(stats.participations);
 
+  const nameById = Object.fromEntries(
+    stats.players?.map((p) => [p.id, p.name]) || []
+  );
+
   const playerNames = Array.from(
     new Set([
+      ...stats.participations.map((p) => p[0]),
       ...stats.payers.map((p) => p[0]),
       ...stats.fetchers.map((f) => f[0]),
-      ...stats.participations.map((p) => p[0]),
     ])
   );
 
   const scoreData = playerNames.map((name) => {
+    const participations = partMap[name] || 0;
     const paid = payMap[name] || 0;
     const fetched = fetchMap[name] || 0;
+
     return {
       name,
+      joué_sans_role: Math.max(
+        participations - paid - fetched,
+        0
+      ),
       payé: paid,
       cherché: fetched,
+      participations,
       score: paid + fetched,
     };
   });
@@ -65,14 +76,7 @@ export default function Stats() {
     .slice(0, 3);
 
   const selectedStats = selectedPlayer
-    ? {
-        participations: partMap[selectedPlayer] || 0,
-        payé: payMap[selectedPlayer] || 0,
-        cherché: fetchMap[selectedPlayer] || 0,
-        score:
-          (payMap[selectedPlayer] || 0) +
-          (fetchMap[selectedPlayer] || 0),
-      }
+    ? scoreData.find((p) => p.name === selectedPlayer)
     : null;
 
   /* =======================
@@ -86,33 +90,25 @@ export default function Stats() {
       </h2>
 
       {/* ===== RÉSUMÉ ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
-        <div className="bg-white p-3 sm:p-4 rounded shadow">
-          <div className="text-gray-500 text-xs sm:text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-white p-4 rounded shadow">
+          <div className="text-gray-500 text-sm">
             Parties enregistrées
           </div>
-          <div className="text-xl sm:text-2xl font-bold">
-            {totalGames}
-          </div>
+          <div className="text-2xl font-bold">{totalGames}</div>
         </div>
 
-        <div className="bg-white p-3 sm:p-4 rounded shadow">
-          <div className="text-gray-500 text-xs sm:text-sm">
-            Cafés bus
-          </div>
-          <div className="text-xl sm:text-2xl font-bold">
-            {coffeesDrunk}
-          </div>
+        <div className="bg-white p-4 rounded shadow">
+          <div className="text-gray-500 text-sm">Cafés bus</div>
+          <div className="text-2xl font-bold">{coffeesDrunk}</div>
         </div>
 
-        <div className="bg-white p-3 sm:p-4 rounded shadow">
-          <div className="text-gray-500 text-xs sm:text-sm mb-2">
-            Podium
-          </div>
+        <div className="bg-white p-4 rounded shadow">
+          <div className="text-gray-500 text-sm mb-2">Podium</div>
           {podium.map((p, i) => (
             <div
               key={p.name}
-              className={`flex justify-between py-1 cursor-pointer text-sm sm:text-base transition ${
+              className={`flex justify-between cursor-pointer ${
                 selectedPlayer === p.name
                   ? "font-bold text-blue-600"
                   : "hover:underline"
@@ -130,78 +126,85 @@ export default function Stats() {
 
       {/* ===== DÉTAIL JOUEUR ===== */}
       {selectedStats && (
-        <div className="bg-blue-50 p-3 sm:p-4 rounded shadow mb-6 sm:mb-8 transition-all">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-semibold text-sm sm:text-base">
+        <div className="bg-blue-50 p-4 rounded shadow mb-8">
+          <div className="flex justify-between mb-3">
+            <h3 className="font-semibold">
               Détails – {selectedPlayer}
             </h3>
             <button
-              className="text-xs sm:text-sm text-blue-600"
+              className="text-sm text-blue-600"
               onClick={() => setSelectedPlayer(null)}
             >
               fermer
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-center">
-            {[
-              ["Participations", selectedStats.participations],
-              ["Payé", selectedStats.payé],
-              ["Cherché", selectedStats.cherché],
-              ["Score", selectedStats.score],
-            ].map(([label, value]) => (
-              <div
-                key={label}
-                className="bg-white p-3 rounded shadow-sm"
-              >
-                <div className="text-gray-500 text-xs sm:text-sm">
-                  {label}
-                </div>
-                <div className="text-lg sm:text-xl font-bold">
-                  {value}
-                </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <div className="text-gray-500 text-sm">Parties</div>
+              <div className="text-xl font-bold">
+                {selectedStats.participations}
               </div>
-            ))}
+            </div>
+            <div>
+              <div className="text-gray-500 text-sm">Payé</div>
+              <div className="text-xl font-bold">
+                {selectedStats.payé}
+              </div>
+            </div>
+            <div>
+              <div className="text-gray-500 text-sm">Cherché</div>
+              <div className="text-xl font-bold">
+                {selectedStats.cherché}
+              </div>
+            </div>
+            <div>
+              <div className="text-gray-500 text-sm">Score</div>
+              <div className="text-xl font-bold">
+                {selectedStats.score}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ===== GRAPHE SCORE ===== */}
-      <div className="bg-white p-3 sm:p-4 rounded shadow mb-6 sm:mb-8">
-        <h3 className="font-semibold mb-3 text-sm sm:text-base">
-          Score par joueur
+      {/* ===== GRAPHE PARTIES / PAYÉ / CHERCHÉ ===== */}
+      <div className="bg-white p-4 rounded shadow mb-8">
+        <h3 className="font-semibold mb-4">
+          Répartition des parties par joueur
         </h3>
 
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer width="100%" height={320}>
           <BarChart data={scoreData}>
             <XAxis
               dataKey="name"
               angle={-35}
               textAnchor="end"
               interval={0}
-              height={60}
+              height={70}
             />
             <YAxis />
             <Tooltip />
-            <Legend
-              wrapperStyle={{ fontSize: "12px" }}
+            <Legend />
+            <Bar
+              dataKey="joué_sans_role"
+              stackId="a"
+              fill="#e5e7eb"
+              name="Joué"
+              onClick={(d) => setSelectedPlayer(d.name)}
             />
             <Bar
               dataKey="payé"
               stackId="a"
               fill="#8b5cf6"
-              opacity={(d) =>
-                !selectedPlayer || d.name === selectedPlayer ? 1 : 0.25
-              }
+              name="Payé"
               onClick={(d) => setSelectedPlayer(d.name)}
             />
             <Bar
               dataKey="cherché"
               stackId="a"
               fill="#22c55e"
-              opacity={(d) =>
-                !selectedPlayer || d.name === selectedPlayer ? 1 : 0.25
-              }
+              name="Cherché"
               onClick={(d) => setSelectedPlayer(d.name)}
             />
           </BarChart>
@@ -209,13 +212,13 @@ export default function Stats() {
       </div>
 
       {/* ===== HISTORIQUE ===== */}
-      <div className="bg-white p-3 sm:p-4 rounded shadow">
-        <h3 className="font-semibold mb-3 text-sm sm:text-base">
+      <div className="bg-white p-4 rounded shadow">
+        <h3 className="font-semibold mb-4">
           Historique des parties
         </h3>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[500px] w-full text-xs sm:text-sm">
+          <table className="min-w-[500px] w-full text-sm">
             <thead>
               <tr className="bg-gray-100">
                 <th className="p-2 text-left">Date</th>
@@ -226,25 +229,21 @@ export default function Stats() {
             </thead>
             <tbody>
               {games.map((g) => {
-                const isDoublette =
-                  g.payer?.id && g.payer.id === g.fetcher?.id;
+                const payerName = g.payer
+                  ? nameById[g.payer]
+                  : null;
+                const fetcherName = g.fetcher
+                  ? nameById[g.fetcher]
+                  : null;
 
-                const isSelected =
-                  selectedPlayer &&
-                  (g.payer?.name === selectedPlayer ||
-                    g.fetcher?.name === selectedPlayer);
+                const isDoublette =
+                  g.payer && g.fetcher && g.payer === g.fetcher;
 
                 return (
                   <tr
                     key={g.id}
                     className={`border-b ${
                       isDoublette ? "bg-yellow-50" : ""
-                    } ${
-                      selectedPlayer
-                        ? isSelected
-                          ? "bg-blue-100"
-                          : "opacity-40"
-                        : ""
                     }`}
                   >
                     <td className="p-2">{g.date}</td>
@@ -252,12 +251,12 @@ export default function Stats() {
                       {g.players?.length || 0}
                     </td>
                     <td className="p-2 text-center">
-                      {g.payer?.name || "-"}
+                      {payerName || "-"}
                     </td>
                     <td className="p-2 text-center">
-                      {g.fetcher?.name || "-"}
+                      {fetcherName || "-"}
                       {isDoublette && (
-                        <span className="ml-1 text-[10px] bg-yellow-300 px-1.5 py-0.5 rounded">
+                        <span className="ml-2 text-xs bg-yellow-300 px-2 py-0.5 rounded">
                           Doublette
                         </span>
                       )}

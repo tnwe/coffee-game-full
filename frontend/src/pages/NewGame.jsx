@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function NewGame() {
   const [players, setPlayers] = useState([]);
@@ -7,21 +7,24 @@ export default function NewGame() {
   const [payer, setPayer] = useState(null);
   const [fetcher, setFetcher] = useState(null);
 
+  const [mode, setMode] = useState("manual"); // manual | draw
+  const [step, setStep] = useState("select"); // select | payer | fetcher | done
+
   const [newPlayer, setNewPlayer] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
 
-  // tirage au sort
-  const [step, setStep] = useState("select"); 
-  // select | draw_payer | draw_fetcher | done
-  const [rollingName, setRollingName] = useState(null);
-  const [rolling, setRolling] = useState(false);
+  /* ===== ROULETTE ===== */
+  const wheelRef = useRef(null);
+  const angleRef = useRef(0);
+  const speedRef = useRef(0);
+  const slowingRef = useRef(false);
+  const rafRef = useRef(null);
 
   function loadPlayers() {
     fetch("/api/players/")
       .then((r) => r.json())
-      .then(setPlayers)
-      .catch(() => setPlayers([]));
+      .then(setPlayers);
   }
 
   useEffect(() => {
@@ -31,7 +34,6 @@ export default function NewGame() {
   function togglePlayed(id) {
     setPlayed((prev) => {
       const next = { ...prev, [id]: !prev[id] };
-
       if (!next[id]) {
         if (payer === id) setPayer(null);
         if (fetcher === id) setFetcher(null);
@@ -40,108 +42,99 @@ export default function NewGame() {
     });
   }
 
-  async function addPlayer() {
-    if (!newPlayer.trim()) return;
-
-    setAdding(true);
-    const res = await fetch(
-      `/api/players/?name=${encodeURIComponent(newPlayer)}`,
-      { method: "POST" }
-    );
-
-    if (res.ok) {
-      setNewPlayer("");
-      loadPlayers();
-    } else {
-      const err = await res.json();
-      alert(err.detail || "Erreur lors de l'ajout du joueur");
-    }
-    setAdding(false);
-  }
-
-  function getParticipants() {
+  function participants() {
     return players.filter((p) => played[p.id]);
   }
 
-  function startDraw(type) {
-    const participants = getParticipants();
-    if (participants.length === 0) {
-      setError("Sélectionne au moins un joueur avant le tirage.");
+  /* ===== ROULETTE LOGIC ===== */
+  function spinWheel() {
+    if (participants().length === 0) {
+      setError("Sélectionne au moins un joueur.");
       return;
     }
 
     setError(null);
-    setRolling(true);
-    setRollingName(null);
+    speedRef.current = 0.3;
+    slowingRef.current = false;
 
-    let i = 0;
-    const interval = setInterval(() => {
-      setRollingName(participants[i % participants.length].name);
-      i++;
-    }, 80);
+    function animate() {
+      angleRef.current += speedRef.current;
+      if (slowingRef.current) {
+        speedRef.current *= 0.985;
+        if (speedRef.current < 0.002) {
+          stopWheel();
+          return;
+        }
+      }
+      wheelRef.current.style.transform =
+        `rotate(${angleRef.current}rad)`;
+      rafRef.current = requestAnimationFrame(animate);
+    }
+
+    animate();
+  }
+
+  function stopWheel() {
+    slowingRef.current = true;
 
     setTimeout(() => {
-      clearInterval(interval);
-      const winner =
-        participants[Math.floor(Math.random() * participants.length)];
+      cancelAnimationFrame(rafRef.current);
 
-      setRolling(false);
-      setRollingName(winner.name);
+      const items = participants();
+      const slice = (2 * Math.PI) / items.length;
+      const index =
+        items.length -
+        Math.floor((angleRef.current % (2 * Math.PI)) / slice) - 1;
 
-      if (type === "payer") {
+      const winner = items[(index + items.length) % items.length];
+
+      if (step === "payer") {
         setPayer(winner.id);
-        setStep("draw_fetcher");
+        setStep("fetcher");
       } else {
         setFetcher(winner.id);
         setStep("done");
       }
-    }, 2000);
+    }, 1200);
   }
 
+  /* ===== SUBMIT ===== */
   async function submit(e) {
     e.preventDefault();
-    setError(null);
 
     const selectedPlayers = Object.keys(played).filter((id) => played[id]);
-
-    if (selectedPlayers.length === 0) {
-      setError("Sélectionne au moins un joueur ayant participé à la partie.");
+    if (!selectedPlayers.length) {
+      setError("Sélectionne au moins un joueur.");
       return;
     }
 
-    const payload = {
-      date,
-      players: selectedPlayers.map(Number),
-      payer: payer ? Number(payer) : null,
-      fetcher: fetcher ? Number(fetcher) : null,
-    };
-
-    const res = await fetch("/api/games/", {
+    await fetch("/api/games/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        date,
+        players: selectedPlayers.map(Number),
+        payer,
+        fetcher,
+      }),
     });
 
-    if (res.ok) {
-      alert("Partie enregistrée");
-      setPlayed({});
-      setPayer(null);
-      setFetcher(null);
-      setStep("select");
-    } else {
-      setError("Erreur lors de l'enregistrement");
-    }
+    alert("Partie enregistrée");
+    setPlayed({});
+    setPayer(null);
+    setFetcher(null);
+    setStep("select");
   }
 
   const payerName = players.find((p) => p.id === payer)?.name;
   const fetcherName = players.find((p) => p.id === fetcher)?.name;
-  const isDoublette = payer && fetcher && payer === fetcher;
+  const doublette = payer && fetcher && payer === fetcher;
 
   return (
     <div className="max-w-4xl mx-auto p-4">
       <h2 className="text-lg font-semibold mb-4">Nouvelle partie</h2>
 
-      <form onSubmit={submit} className="bg-white p-4 rounded shadow relative">
+      <form onSubmit={submit} className="bg-white p-4 rounded shadow">
         {error && (
           <div className="bg-red-100 text-red-700 p-2 rounded mb-3">
             {error}
@@ -151,165 +144,144 @@ export default function NewGame() {
         <label className="block mb-3">
           Date
           <input
-            className="border p-2 ml-3"
             type="date"
+            className="border p-2 ml-3"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
         </label>
 
-        {/* TABLEAU JOUEURS */}
+        {/* MODE */}
+        <div className="flex gap-3 mb-4">
+          <button
+            type="button"
+            onClick={() => setMode("manual")}
+            className={`px-3 py-1 rounded ${
+              mode === "manual" ? "bg-blue-600 text-white" : "bg-gray-200"
+            }`}
+          >
+            Mode manuel
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("draw")}
+            className={`px-3 py-1 rounded ${
+              mode === "draw" ? "bg-blue-600 text-white" : "bg-gray-200"
+            }`}
+          >
+            Mode tirage
+          </button>
+        </div>
+
+        {/* TABLE */}
         <table className="w-full text-sm mb-4">
           <thead>
             <tr className="bg-gray-100">
-              <th className="p-2 text-left">Joueur</th>
-              <th className="p-2">Joue</th>
-              <th className="p-2">Paie</th>
-              <th className="p-2">Va chercher</th>
+              <th>Joueur</th>
+              <th>Joue</th>
+              <th>Paye</th>
+              <th>Cherche</th>
             </tr>
           </thead>
           <tbody>
-            {players.map((p) => {
-              const hasPlayed = !!played[p.id];
-
-              return (
-                <tr
-                  key={p.id}
-                  className={`border-b ${!hasPlayed ? "opacity-50" : ""}`}
-                >
-                  <td className="p-2">{p.name}</td>
-
-                  <td className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={hasPlayed}
-                      onChange={() => togglePlayed(p.id)}
-                    />
-                  </td>
-
-                  <td className="p-2 text-center">
-                    <input
-                      type="radio"
-                      name="payer"
-                      disabled={!hasPlayed}
-                      checked={payer === p.id}
-                      onChange={() => setPayer(p.id)}
-                    />
-                  </td>
-
-                  <td className="p-2 text-center">
-                    <input
-                      type="radio"
-                      name="fetcher"
-                      disabled={!hasPlayed}
-                      checked={fetcher === p.id}
-                      onChange={() => setFetcher(p.id)}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
+            {players.map((p) => (
+              <tr key={p.id} className={!played[p.id] ? "opacity-50" : ""}>
+                <td>{p.name}</td>
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={!!played[p.id]}
+                    onChange={() => togglePlayed(p.id)}
+                  />
+                </td>
+                <td>
+                  <input
+                    type="radio"
+                    disabled={mode === "draw"}
+                    checked={payer === p.id}
+                    onChange={() => setPayer(p.id)}
+                  />
+                </td>
+                <td>
+                  <input
+                    type="radio"
+                    disabled={mode === "draw"}
+                    checked={fetcher === p.id}
+                    onChange={() => setFetcher(p.id)}
+                  />
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
 
-        {/* TIRAGES */}
-        {step === "select" && (
-          <button
-            type="button"
-            onClick={() => setStep("draw_payer")}
-            className="bg-blue-600 text-white px-4 py-2 rounded mb-3"
-          >
-            🎲 Tirer au sort
-          </button>
-        )}
-
-        {(step === "draw_payer" || step === "draw_fetcher") && (
-          <div className="bg-gray-50 p-4 rounded mb-3 text-center">
-            {step === "draw_fetcher" && payerName && (
-              <p className="mb-2 text-sm">
-                ☕ Payeur :
-                <span className="ml-2 font-bold animate-pulse">
-                  {payerName}
-                </span>
-              </p>
-            )}
-
-            <h3 className="font-semibold mb-2">
-              {step === "draw_payer"
-                ? "Qui paye le café ?"
-                : "Qui va chercher le café ?"}
-            </h3>
-
-            <div
-              className={`text-2xl font-bold h-10 ${
-                rolling ? "animate-pulse" : "animate-bounce"
-              }`}
-            >
-              {rollingName || "—"}
+        {/* ROULETTE */}
+        {mode === "draw" && (
+          <div className="text-center mb-4">
+            <div className="relative w-64 h-64 mx-auto mb-4">
+              <div
+                ref={wheelRef}
+                className="w-full h-full rounded-full border-4 border-coffee relative transition-transform"
+              >
+                {participants().map((p, i) => (
+                  <div
+                    key={p.id}
+                    className="absolute left-1/2 top-1/2 origin-left text-sm"
+                    style={{
+                      transform: `rotate(${(360 / participants().length) * i}deg) translateX(120px)`,
+                    }}
+                  >
+                    {p.name}
+                  </div>
+                ))}
+              </div>
+              <div className="absolute top-[-10px] left-1/2 -translate-x-1/2">
+                ▲
+              </div>
             </div>
 
-            {!rolling && (
+            <div className="flex justify-center gap-3">
               <button
                 type="button"
-                onClick={() =>
-                  startDraw(step === "draw_payer" ? "payer" : "fetcher")
-                }
-                className="mt-3 bg-coffee text-white px-4 py-2 rounded"
+                onClick={() => {
+                  setStep("payer");
+                  spinWheel();
+                }}
+                className="bg-blue-600 text-white px-4 py-2 rounded"
               >
-                Lancer le tirage
+                Lancer la roulette
               </button>
+              <button
+                type="button"
+                onClick={stopWheel}
+                className="bg-red-600 text-white px-4 py-2 rounded"
+              >
+                Stop
+              </button>
+            </div>
+
+            {step !== "select" && payerName && (
+              <p className="mt-3 font-bold">☕ Payeur : {payerName}</p>
             )}
           </div>
         )}
 
         {step === "done" && (
-          <div className="bg-green-50 p-4 rounded mb-3 text-center relative overflow-hidden">
-            {isDoublette && (
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="animate-ping absolute inset-0 bg-yellow-300 opacity-30" />
-              </div>
-            )}
-
-            <p className="text-lg font-bold animate-bounce">
-              ☕ Paye : {payerName}
-            </p>
-            <p className="text-lg font-bold animate-bounce delay-150">
-              🚶‍♂️ Va chercher : {fetcherName}
-            </p>
-
-            {isDoublette && (
+          <div className="bg-green-50 p-3 rounded text-center mb-3">
+            <p className="font-bold">☕ Paye : {payerName}</p>
+            <p className="font-bold">🚶‍♂️ Cherche : {fetcherName}</p>
+            {doublette && (
               <p className="mt-2 text-sm bg-yellow-200 inline-block px-3 py-1 rounded">
-                🎉 Doublette ! Héros du café ☕
+                🎉 Doublette !
               </p>
             )}
           </div>
         )}
 
-        <button
-          className="bg-coffee text-white px-4 py-2 rounded"
-          type="submit"
-        >
+        <button className="bg-coffee text-white px-4 py-2 rounded">
           Enregistrer
         </button>
       </form>
-
-      {/* AJOUT JOUEUR */}
-      <div className="bg-white p-4 rounded shadow mt-6 flex gap-3 items-center">
-        <input
-          className="border p-2 flex-1"
-          placeholder="Nouveau joueur"
-          value={newPlayer}
-          onChange={(e) => setNewPlayer(e.target.value)}
-        />
-        <button
-          type="button"
-          onClick={addPlayer}
-          disabled={adding}
-          className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
-        >
-          Ajouter
-        </button>
-      </div>
     </div>
   );
 }
