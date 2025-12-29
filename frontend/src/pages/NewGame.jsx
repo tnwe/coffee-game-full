@@ -2,224 +2,314 @@ import { useEffect, useState } from "react";
 
 export default function NewGame() {
   const [players, setPlayers] = useState([]);
-  const [selectedPlayers, setSelectedPlayers] = useState([]);
-  const [rollingName, setRollingName] = useState(null);
-  const [rolling, setRolling] = useState(false);
-
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [played, setPlayed] = useState({});
   const [payer, setPayer] = useState(null);
   const [fetcher, setFetcher] = useState(null);
 
-  const [step, setStep] = useState("select"); // select | draw_payer | draw_fetcher | done
+  const [newPlayer, setNewPlayer] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
+  // tirage au sort
+  const [step, setStep] = useState("select"); 
+  // select | draw_payer | draw_fetcher | done
+  const [rollingName, setRollingName] = useState(null);
+  const [rolling, setRolling] = useState(false);
+
+  function loadPlayers() {
     fetch("/api/players/")
       .then((r) => r.json())
-      .then(setPlayers);
-  }, []);
-
-  function getPlayerName(id) {
-    return players.find((p) => p.id === id)?.name;
+      .then(setPlayers)
+      .catch(() => setPlayers([]));
   }
 
-  function togglePlayer(id) {
-    setSelectedPlayers((prev) =>
-      prev.includes(id)
-        ? prev.filter((p) => p !== id)
-        : [...prev, id]
+  useEffect(() => {
+    loadPlayers();
+  }, []);
+
+  function togglePlayed(id) {
+    setPlayed((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+
+      if (!next[id]) {
+        if (payer === id) setPayer(null);
+        if (fetcher === id) setFetcher(null);
+      }
+      return next;
+    });
+  }
+
+  async function addPlayer() {
+    if (!newPlayer.trim()) return;
+
+    setAdding(true);
+    const res = await fetch(
+      `/api/players/?name=${encodeURIComponent(newPlayer)}`,
+      { method: "POST" }
     );
+
+    if (res.ok) {
+      setNewPlayer("");
+      loadPlayers();
+    } else {
+      const err = await res.json();
+      alert(err.detail || "Erreur lors de l'ajout du joueur");
+    }
+    setAdding(false);
+  }
+
+  function getParticipants() {
+    return players.filter((p) => played[p.id]);
   }
 
   function startDraw(type) {
-    if (rolling) return;
+    const participants = getParticipants();
+    if (participants.length === 0) {
+      setError("Sélectionne au moins un joueur avant le tirage.");
+      return;
+    }
 
+    setError(null);
     setRolling(true);
-    let i = 0;
+    setRollingName(null);
 
+    let i = 0;
     const interval = setInterval(() => {
-      setRollingName(
-        getPlayerName(
-          selectedPlayers[Math.floor(Math.random() * selectedPlayers.length)]
-        )
-      );
+      setRollingName(participants[i % participants.length].name);
       i++;
     }, 80);
 
     setTimeout(() => {
       clearInterval(interval);
+      const winner =
+        participants[Math.floor(Math.random() * participants.length)];
 
-      const chosen =
-        selectedPlayers[Math.floor(Math.random() * selectedPlayers.length)];
-
-      setRollingName(null);
       setRolling(false);
+      setRollingName(winner.name);
 
       if (type === "payer") {
-        setPayer(chosen);
+        setPayer(winner.id);
         setStep("draw_fetcher");
       } else {
-        setFetcher(chosen);
+        setFetcher(winner.id);
         setStep("done");
       }
-    }, 1800);
+    }, 2000);
   }
 
-  async function saveGame() {
-    await fetch("/api/games/", {
+  async function submit(e) {
+    e.preventDefault();
+    setError(null);
+
+    const selectedPlayers = Object.keys(played).filter((id) => played[id]);
+
+    if (selectedPlayers.length === 0) {
+      setError("Sélectionne au moins un joueur ayant participé à la partie.");
+      return;
+    }
+
+    const payload = {
+      date,
+      players: selectedPlayers.map(Number),
+      payer: payer ? Number(payer) : null,
+      fetcher: fetcher ? Number(fetcher) : null,
+    };
+
+    const res = await fetch("/api/games/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        players: selectedPlayers,
-        payer,
-        fetcher,
-      }),
+      body: JSON.stringify(payload),
     });
 
-    setSelectedPlayers([]);
-    setPayer(null);
-    setFetcher(null);
-    setStep("select");
+    if (res.ok) {
+      alert("Partie enregistrée");
+      setPlayed({});
+      setPayer(null);
+      setFetcher(null);
+      setStep("select");
+    } else {
+      setError("Erreur lors de l'enregistrement");
+    }
   }
 
+  const payerName = players.find((p) => p.id === payer)?.name;
+  const fetcherName = players.find((p) => p.id === fetcher)?.name;
   const isDoublette = payer && fetcher && payer === fetcher;
 
   return (
-    <div className="max-w-xl mx-auto p-4 space-y-6 relative overflow-hidden">
+    <div className="max-w-4xl mx-auto p-4">
+      <h2 className="text-lg font-semibold mb-4">Nouvelle partie</h2>
 
-      {/* 🎉 CONFETTIS */}
-      {isDoublette && (
-        <div className="pointer-events-none absolute inset-0 z-10">
-          <div className="confetti" />
-        </div>
-      )}
-
-      <h2 className="text-lg font-semibold">Nouvelle partie</h2>
-
-      {/* ===== SÉLECTION ===== */}
-      {step === "select" && (
-        <>
-          <div className="grid grid-cols-2 gap-2">
-            {players.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => togglePlayer(p.id)}
-                className={`p-2 rounded border transition-all ${
-                  selectedPlayers.includes(p.id)
-                    ? "bg-coffee text-white scale-105"
-                    : "bg-white"
-                }`}
-              >
-                {p.name}
-              </button>
-            ))}
+      <form onSubmit={submit} className="bg-white p-4 rounded shadow relative">
+        {error && (
+          <div className="bg-red-100 text-red-700 p-2 rounded mb-3">
+            {error}
           </div>
+        )}
 
+        <label className="block mb-3">
+          Date
+          <input
+            className="border p-2 ml-3"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </label>
+
+        {/* TABLEAU JOUEURS */}
+        <table className="w-full text-sm mb-4">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="p-2 text-left">Joueur</th>
+              <th className="p-2">Joue</th>
+              <th className="p-2">Paie</th>
+              <th className="p-2">Va chercher</th>
+            </tr>
+          </thead>
+          <tbody>
+            {players.map((p) => {
+              const hasPlayed = !!played[p.id];
+
+              return (
+                <tr
+                  key={p.id}
+                  className={`border-b ${!hasPlayed ? "opacity-50" : ""}`}
+                >
+                  <td className="p-2">{p.name}</td>
+
+                  <td className="p-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={hasPlayed}
+                      onChange={() => togglePlayed(p.id)}
+                    />
+                  </td>
+
+                  <td className="p-2 text-center">
+                    <input
+                      type="radio"
+                      name="payer"
+                      disabled={!hasPlayed}
+                      checked={payer === p.id}
+                      onChange={() => setPayer(p.id)}
+                    />
+                  </td>
+
+                  <td className="p-2 text-center">
+                    <input
+                      type="radio"
+                      name="fetcher"
+                      disabled={!hasPlayed}
+                      checked={fetcher === p.id}
+                      onChange={() => setFetcher(p.id)}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* TIRAGES */}
+        {step === "select" && (
           <button
-            disabled={selectedPlayers.length < 2}
+            type="button"
             onClick={() => setStep("draw_payer")}
-            className="w-full bg-coffee text-white py-2 rounded disabled:opacity-40"
+            className="bg-blue-600 text-white px-4 py-2 rounded mb-3"
           >
-            Lancer les tirages
+            🎲 Tirer au sort
           </button>
-        </>
-      )}
+        )}
 
-      {/* ===== TIRAGES ===== */}
-      {(step === "draw_payer" || step === "draw_fetcher") && (
-        <div className="bg-gray-50 p-4 rounded text-center space-y-4">
+        {(step === "draw_payer" || step === "draw_fetcher") && (
+          <div className="bg-gray-50 p-4 rounded mb-3 text-center">
+            {step === "draw_fetcher" && payerName && (
+              <p className="mb-2 text-sm">
+                ☕ Payeur :
+                <span className="ml-2 font-bold animate-pulse">
+                  {payerName}
+                </span>
+              </p>
+            )}
 
-          {/* PAYEUR FIXÉ */}
-          {payer && (
-            <div className="animate-pop bg-green-100 text-green-700 py-2 rounded font-semibold">
-              ☕ Paye : {getPlayerName(payer)}
-            </div>
-          )}
+            <h3 className="font-semibold mb-2">
+              {step === "draw_payer"
+                ? "Qui paye le café ?"
+                : "Qui va chercher le café ?"}
+            </h3>
 
-          {/* FETCHER FIXÉ */}
-          {fetcher && (
-            <div className="animate-pop bg-blue-100 text-blue-700 py-2 rounded font-semibold">
-              🚶 Cherche : {getPlayerName(fetcher)}
-            </div>
-          )}
-
-          <h3 className="font-semibold">
-            {step === "draw_payer"
-              ? "Qui paye le café ?"
-              : "Qui va chercher le café ?"}
-          </h3>
-
-          {/* ANIMATION */}
-          <div className="text-3xl font-bold h-10 animate-pulse">
-            {rollingName || "—"}
-          </div>
-
-          {!rolling && (
-            <button
-              onClick={() =>
-                startDraw(step === "draw_payer" ? "payer" : "fetcher")
-              }
-              className="bg-coffee text-white px-4 py-2 rounded"
+            <div
+              className={`text-2xl font-bold h-10 ${
+                rolling ? "animate-pulse" : "animate-bounce"
+              }`}
             >
-              Lancer le tirage
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ===== RÉSULTAT FINAL ===== */}
-      {step === "done" && (
-        <div
-          className={`p-4 rounded shadow text-center space-y-3 animate-pop ${
-            isDoublette ? "bg-yellow-100" : "bg-white"
-          }`}
-        >
-          <div className="font-semibold text-lg">
-            ☕ Paye : {getPlayerName(payer)}
-          </div>
-          <div className="font-semibold text-lg">
-            🚶 Cherche : {getPlayerName(fetcher)}
-          </div>
-
-          {isDoublette && (
-            <div className="text-yellow-700 font-bold">
-              🎉 DOUBLETTE ! Cas spécial !
+              {rollingName || "—"}
             </div>
-          )}
 
-          <button
-            onClick={saveGame}
-            className="bg-coffee text-white px-4 py-2 rounded"
-          >
-            Enregistrer la partie
-          </button>
-        </div>
-      )}
+            {!rolling && (
+              <button
+                type="button"
+                onClick={() =>
+                  startDraw(step === "draw_payer" ? "payer" : "fetcher")
+                }
+                className="mt-3 bg-coffee text-white px-4 py-2 rounded"
+              >
+                Lancer le tirage
+              </button>
+            )}
+          </div>
+        )}
 
-      {/* ===== STYLES CONFETTIS ===== */}
-      <style>{`
-        .animate-pop {
-          animation: pop 0.4s ease-out;
-        }
-        @keyframes pop {
-          0% { transform: scale(0.8); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
+        {step === "done" && (
+          <div className="bg-green-50 p-4 rounded mb-3 text-center relative overflow-hidden">
+            {isDoublette && (
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="animate-ping absolute inset-0 bg-yellow-300 opacity-30" />
+              </div>
+            )}
 
-        .confetti::before {
-          content: "🎉 🎊 🎉 🎊 🎉 🎊 🎉 🎊";
-          position: absolute;
-          top: -10px;
-          left: 0;
-          right: 0;
-          text-align: center;
-          font-size: 2rem;
-          animation: fall 1.5s linear infinite;
-        }
+            <p className="text-lg font-bold animate-bounce">
+              ☕ Paye : {payerName}
+            </p>
+            <p className="text-lg font-bold animate-bounce delay-150">
+              🚶‍♂️ Va chercher : {fetcherName}
+            </p>
 
-        @keyframes fall {
-          0% { transform: translateY(0); opacity: 1; }
-          100% { transform: translateY(100vh); opacity: 0; }
-        }
-      `}</style>
+            {isDoublette && (
+              <p className="mt-2 text-sm bg-yellow-200 inline-block px-3 py-1 rounded">
+                🎉 Doublette ! Héros du café ☕
+              </p>
+            )}
+          </div>
+        )}
+
+        <button
+          className="bg-coffee text-white px-4 py-2 rounded"
+          type="submit"
+        >
+          Enregistrer
+        </button>
+      </form>
+
+      {/* AJOUT JOUEUR */}
+      <div className="bg-white p-4 rounded shadow mt-6 flex gap-3 items-center">
+        <input
+          className="border p-2 flex-1"
+          placeholder="Nouveau joueur"
+          value={newPlayer}
+          onChange={(e) => setNewPlayer(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={addPlayer}
+          disabled={adding}
+          className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
+        >
+          Ajouter
+        </button>
+      </div>
     </div>
   );
 }
