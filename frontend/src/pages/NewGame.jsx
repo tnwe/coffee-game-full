@@ -2,281 +2,224 @@ import { useEffect, useState } from "react";
 
 export default function NewGame() {
   const [players, setPlayers] = useState([]);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [played, setPlayed] = useState({});
-  const [payer, setPayer] = useState(null);
-  const [fetcher, setFetcher] = useState(null);
-
-  const [newPlayer, setNewPlayer] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [error, setError] = useState(null);
-
-  // tirage au sort
-  const [step, setStep] = useState("select"); 
-  // select | draw_payer | draw_fetcher | done
+  const [selectedPlayers, setSelectedPlayers] = useState([]);
   const [rollingName, setRollingName] = useState(null);
   const [rolling, setRolling] = useState(false);
 
-  function loadPlayers() {
-    fetch("/api/players/")
-      .then((r) => r.json())
-      .then(setPlayers)
-      .catch(() => setPlayers([]));
-  }
+  const [payer, setPayer] = useState(null);
+  const [fetcher, setFetcher] = useState(null);
+
+  const [step, setStep] = useState("select"); // select | draw_payer | draw_fetcher | done
 
   useEffect(() => {
-    loadPlayers();
+    fetch("/api/players/")
+      .then((r) => r.json())
+      .then(setPlayers);
   }, []);
 
-  function togglePlayed(id) {
-    setPlayed((prev) => {
-      const next = { ...prev, [id]: !prev[id] };
-
-      if (!next[id]) {
-        if (payer === id) setPayer(null);
-        if (fetcher === id) setFetcher(null);
-      }
-      return next;
-    });
+  function getPlayerName(id) {
+    return players.find((p) => p.id === id)?.name;
   }
 
-  async function addPlayer() {
-    if (!newPlayer.trim()) return;
-
-    setAdding(true);
-    const res = await fetch(
-      `/api/players/?name=${encodeURIComponent(newPlayer)}`,
-      { method: "POST" }
+  function togglePlayer(id) {
+    setSelectedPlayers((prev) =>
+      prev.includes(id)
+        ? prev.filter((p) => p !== id)
+        : [...prev, id]
     );
-
-    if (res.ok) {
-      setNewPlayer("");
-      loadPlayers();
-    } else {
-      const err = await res.json();
-      alert(err.detail || "Erreur lors de l'ajout du joueur");
-    }
-    setAdding(false);
-  }
-
-  function getParticipants() {
-    return players.filter((p) => played[p.id]);
   }
 
   function startDraw(type) {
-    const participants = getParticipants();
-    if (participants.length === 0) {
-      setError("Sélectionne au moins un joueur avant le tirage.");
-      return;
-    }
+    if (rolling) return;
 
-    setError(null);
     setRolling(true);
-    setRollingName(null);
-
     let i = 0;
+
     const interval = setInterval(() => {
-      setRollingName(participants[i % participants.length].name);
+      setRollingName(
+        getPlayerName(
+          selectedPlayers[Math.floor(Math.random() * selectedPlayers.length)]
+        )
+      );
       i++;
     }, 80);
 
     setTimeout(() => {
       clearInterval(interval);
-      const winner =
-        participants[Math.floor(Math.random() * participants.length)];
 
+      const chosen =
+        selectedPlayers[Math.floor(Math.random() * selectedPlayers.length)];
+
+      setRollingName(null);
       setRolling(false);
-      setRollingName(winner.name);
 
       if (type === "payer") {
-        setPayer(winner.id);
+        setPayer(chosen);
         setStep("draw_fetcher");
       } else {
-        setFetcher(winner.id);
+        setFetcher(chosen);
         setStep("done");
       }
-    }, 2000);
+    }, 1800);
   }
 
-  async function submit(e) {
-    e.preventDefault();
-    setError(null);
-
-    const selectedPlayers = Object.keys(played).filter((id) => played[id]);
-
-    if (selectedPlayers.length === 0) {
-      setError("Sélectionne au moins un joueur ayant participé à la partie.");
-      return;
-    }
-
-    const payload = {
-      date,
-      players: selectedPlayers.map(Number),
-      payer: payer ? Number(payer) : null,
-      fetcher: fetcher ? Number(fetcher) : null,
-    };
-
-    const res = await fetch("/api/games/", {
+  async function saveGame() {
+    await fetch("/api/games/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        players: selectedPlayers,
+        payer,
+        fetcher,
+      }),
     });
 
-    if (res.ok) {
-      alert("Partie enregistrée");
-      setPlayed({});
-      setPayer(null);
-      setFetcher(null);
-      setStep("select");
-    } else {
-      setError("Erreur lors de l'enregistrement");
-    }
+    setSelectedPlayers([]);
+    setPayer(null);
+    setFetcher(null);
+    setStep("select");
   }
 
+  const isDoublette = payer && fetcher && payer === fetcher;
+
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h2 className="text-lg font-semibold mb-4">Nouvelle partie</h2>
+    <div className="max-w-xl mx-auto p-4 space-y-6 relative overflow-hidden">
 
-      <form onSubmit={submit} className="bg-white p-4 rounded shadow">
-        {error && (
-          <div className="bg-red-100 text-red-700 p-2 rounded mb-3">
-            {error}
-          </div>
-        )}
+      {/* 🎉 CONFETTIS */}
+      {isDoublette && (
+        <div className="pointer-events-none absolute inset-0 z-10">
+          <div className="confetti" />
+        </div>
+      )}
 
-        <label className="block mb-3">
-          Date
-          <input
-            className="border p-2 ml-3"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </label>
+      <h2 className="text-lg font-semibold">Nouvelle partie</h2>
 
-        {/* TABLEAU JOUEURS */}
-        <table className="w-full text-sm mb-4">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 text-left">Joueur</th>
-              <th className="p-2">Joue</th>
-              <th className="p-2">Paie</th>
-              <th className="p-2">Va chercher</th>
-            </tr>
-          </thead>
-          <tbody>
-            {players.map((p) => {
-              const hasPlayed = !!played[p.id];
-
-              return (
-                <tr
-                  key={p.id}
-                  className={`border-b ${!hasPlayed ? "opacity-50" : ""}`}
-                >
-                  <td className="p-2">{p.name}</td>
-
-                  <td className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={hasPlayed}
-                      onChange={() => togglePlayed(p.id)}
-                    />
-                  </td>
-
-                  <td className="p-2 text-center">
-                    <input
-                      type="radio"
-                      name="payer"
-                      disabled={!hasPlayed}
-                      checked={payer === p.id}
-                      onChange={() => setPayer(p.id)}
-                    />
-                  </td>
-
-                  <td className="p-2 text-center">
-                    <input
-                      type="radio"
-                      name="fetcher"
-                      disabled={!hasPlayed}
-                      checked={fetcher === p.id}
-                      onChange={() => setFetcher(p.id)}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {/* TIRAGES AU SORT */}
-        {step === "select" && (
-          <button
-            type="button"
-            onClick={() => setStep("draw_payer")}
-            className="bg-blue-600 text-white px-4 py-2 rounded mb-3"
-          >
-            🎲 Tirer au sort
-          </button>
-        )}
-
-        {(step === "draw_payer" || step === "draw_fetcher") && (
-          <div className="bg-gray-50 p-4 rounded mb-3 text-center">
-            <h3 className="font-semibold mb-2">
-              {step === "draw_payer"
-                ? "Qui paye le café ?"
-                : "Qui va chercher le café ?"}
-            </h3>
-
-            <div className="text-2xl font-bold h-10">
-              {rollingName || "—"}
-            </div>
-
-            {!rolling && (
+      {/* ===== SÉLECTION ===== */}
+      {step === "select" && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            {players.map((p) => (
               <button
-                type="button"
-                onClick={() =>
-                  startDraw(step === "draw_payer" ? "payer" : "fetcher")
-                }
-                className="mt-3 bg-coffee text-white px-4 py-2 rounded"
+                key={p.id}
+                onClick={() => togglePlayer(p.id)}
+                className={`p-2 rounded border transition-all ${
+                  selectedPlayers.includes(p.id)
+                    ? "bg-coffee text-white scale-105"
+                    : "bg-white"
+                }`}
               >
-                Lancer le tirage
+                {p.name}
               </button>
-            )}
+            ))}
           </div>
-        )}
 
-        {step === "done" && (
-          <div className="bg-green-50 p-4 rounded mb-3">
-            <p>☕ Paye : {players.find(p => p.id === payer)?.name}</p>
-            <p>🚶‍♂️ Va chercher : {players.find(p => p.id === fetcher)?.name}</p>
+          <button
+            disabled={selectedPlayers.length < 2}
+            onClick={() => setStep("draw_payer")}
+            className="w-full bg-coffee text-white py-2 rounded disabled:opacity-40"
+          >
+            Lancer les tirages
+          </button>
+        </>
+      )}
+
+      {/* ===== TIRAGES ===== */}
+      {(step === "draw_payer" || step === "draw_fetcher") && (
+        <div className="bg-gray-50 p-4 rounded text-center space-y-4">
+
+          {/* PAYEUR FIXÉ */}
+          {payer && (
+            <div className="animate-pop bg-green-100 text-green-700 py-2 rounded font-semibold">
+              ☕ Paye : {getPlayerName(payer)}
+            </div>
+          )}
+
+          {/* FETCHER FIXÉ */}
+          {fetcher && (
+            <div className="animate-pop bg-blue-100 text-blue-700 py-2 rounded font-semibold">
+              🚶 Cherche : {getPlayerName(fetcher)}
+            </div>
+          )}
+
+          <h3 className="font-semibold">
+            {step === "draw_payer"
+              ? "Qui paye le café ?"
+              : "Qui va chercher le café ?"}
+          </h3>
+
+          {/* ANIMATION */}
+          <div className="text-3xl font-bold h-10 animate-pulse">
+            {rollingName || "—"}
           </div>
-        )}
 
-        <button
-          className="bg-coffee text-white px-4 py-2 rounded"
-          type="submit"
-        >
-          Enregistrer
-        </button>
-      </form>
+          {!rolling && (
+            <button
+              onClick={() =>
+                startDraw(step === "draw_payer" ? "payer" : "fetcher")
+              }
+              className="bg-coffee text-white px-4 py-2 rounded"
+            >
+              Lancer le tirage
+            </button>
+          )}
+        </div>
+      )}
 
-      {/* AJOUT JOUEUR — TOUT EN BAS */}
-      <div className="bg-white p-4 rounded shadow mt-6 flex gap-3 items-center">
-        <input
-          className="border p-2 flex-1"
-          placeholder="Nouveau joueur"
-          value={newPlayer}
-          onChange={(e) => setNewPlayer(e.target.value)}
-        />
-        <button
-          type="button"
-          onClick={addPlayer}
-          disabled={adding}
-          className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
+      {/* ===== RÉSULTAT FINAL ===== */}
+      {step === "done" && (
+        <div
+          className={`p-4 rounded shadow text-center space-y-3 animate-pop ${
+            isDoublette ? "bg-yellow-100" : "bg-white"
+          }`}
         >
-          Ajouter
-        </button>
-      </div>
+          <div className="font-semibold text-lg">
+            ☕ Paye : {getPlayerName(payer)}
+          </div>
+          <div className="font-semibold text-lg">
+            🚶 Cherche : {getPlayerName(fetcher)}
+          </div>
+
+          {isDoublette && (
+            <div className="text-yellow-700 font-bold">
+              🎉 DOUBLETTE ! Cas spécial !
+            </div>
+          )}
+
+          <button
+            onClick={saveGame}
+            className="bg-coffee text-white px-4 py-2 rounded"
+          >
+            Enregistrer la partie
+          </button>
+        </div>
+      )}
+
+      {/* ===== STYLES CONFETTIS ===== */}
+      <style>{`
+        .animate-pop {
+          animation: pop 0.4s ease-out;
+        }
+        @keyframes pop {
+          0% { transform: scale(0.8); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
+        .confetti::before {
+          content: "🎉 🎊 🎉 🎊 🎉 🎊 🎉 🎊";
+          position: absolute;
+          top: -10px;
+          left: 0;
+          right: 0;
+          text-align: center;
+          font-size: 2rem;
+          animation: fall 1.5s linear infinite;
+        }
+
+        @keyframes fall {
+          0% { transform: translateY(0); opacity: 1; }
+          100% { transform: translateY(100vh); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
