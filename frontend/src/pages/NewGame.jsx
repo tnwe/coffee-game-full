@@ -14,7 +14,6 @@ export default function NewGame() {
   const [running, setRunning] = useState(false);
   const [blink, setBlink] = useState(false);
 
-  const [liveStats, setLiveStats] = useState({});
   const intervalRef = useRef(null);
   const drawRef = useRef(null);
 
@@ -53,9 +52,7 @@ export default function NewGame() {
   /* ======================
      DRAW LOGIC
   ====================== */
-  function startOrStop() {
-    if (running) return stopDraw();
-
+  function startDraw() {
     if (participants().length === 0) {
       setError("Sélectionne au moins un joueur.");
       return;
@@ -64,19 +61,8 @@ export default function NewGame() {
     setError(null);
     setRunning(true);
 
-    const stats = {};
-    participants().forEach((p) => (stats[p.id] = 0));
-    setLiveStats(stats);
-
     intervalRef.current = setInterval(() => {
       setRollingIndex((i) => (i + 1) % participants().length);
-      const id = participants()[rollingIndex]?.id;
-      if (id) {
-        setLiveStats((s) => ({
-          ...s,
-          [id]: (s[id] || 0) + 1,
-        }));
-      }
     }, 80);
   }
 
@@ -93,8 +79,7 @@ export default function NewGame() {
     if (step === "idle" || step === "payer") {
       setPayer(winner.id);
       setStep("fetcher");
-      setTimeout(startOrStop, 800);
-    } else {
+    } else if (step === "fetcher") {
       setFetcher(winner.id);
       setStep("done");
       explodeConfetti();
@@ -107,13 +92,13 @@ export default function NewGame() {
   function explodeConfetti() {
     if (!drawRef.current) return;
 
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < 30; i++) {
       const el = document.createElement("span");
       el.className = "confetti";
       el.style.left = "50%";
       el.style.top = "50%";
-      el.style.setProperty("--x", `${Math.random() * 200 - 100}px`);
-      el.style.setProperty("--y", `${Math.random() * -200 - 50}px`);
+      el.style.setProperty("--x", `${Math.random() * 240 - 120}px`);
+      el.style.setProperty("--y", `${Math.random() * -220 - 60}px`);
       drawRef.current.appendChild(el);
       setTimeout(() => el.remove(), 1200);
     }
@@ -167,8 +152,6 @@ export default function NewGame() {
     setAdding(false);
   }
 
-  const doublette = payer && fetcher && payer === fetcher;
-
   /* ======================
      RENDER
   ====================== */
@@ -197,16 +180,6 @@ export default function NewGame() {
             {error}
           </div>
         )}
-
-        <label className="block mb-3">
-          Date
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="border ml-3 p-1"
-          />
-        </label>
 
         {/* TABLE */}
         <table className="w-full text-sm mb-4">
@@ -250,9 +223,9 @@ export default function NewGame() {
           </tbody>
         </table>
 
-        {/* RESULT PAYEUR */}
+        {/* PAYEUR VALIDÉ */}
         {payer && (
-          <div className="bg-green-100 p-3 rounded mb-3 flex justify-between items-center">
+          <div className="bg-green-100 p-3 rounded mb-3 flex justify-between">
             <p>💳 Qui paye : {players.find(p => p.id === payer)?.name}</p>
             <span className="text-green-600 font-bold">✔</span>
           </div>
@@ -275,12 +248,14 @@ export default function NewGame() {
                 blink ? "animate-pulse text-green-600" : ""
               }`}
             >
-              {participants()[rollingIndex]?.name || "—"}
+              {running
+                ? participants()[rollingIndex]?.name
+                : "???"}
             </div>
 
             <button
               type="button"
-              onClick={startOrStop}
+              onClick={running ? stopDraw : startDraw}
               className={`mt-3 px-4 py-2 rounded text-white ${
                 running ? "bg-red-600" : "bg-coffee"
               }`}
@@ -290,10 +265,11 @@ export default function NewGame() {
           </div>
         )}
 
-        {/* RESULT FETCHER */}
+        {/* FETCHER */}
         {fetcher && (
           <div className="bg-blue-50 p-3 rounded mb-3">
-            <p>🚶 Qui va chercher : {players.find(p => p.id === fetcher)?.name}</p>
+            🚶 Qui va chercher :{" "}
+            {players.find(p => p.id === fetcher)?.name}
           </div>
         )}
 
@@ -322,14 +298,12 @@ export default function NewGame() {
         </button>
       </div>
 
-      {/* CONFETTI CSS */}
       <style>{`
         .confetti {
           position: absolute;
           width: 8px;
           height: 8px;
           background: hsl(${Math.random() * 360}, 90%, 60%);
-          border-radius: 2px;
           animation: pop 1.1s ease-out forwards;
         }
         @keyframes pop {
