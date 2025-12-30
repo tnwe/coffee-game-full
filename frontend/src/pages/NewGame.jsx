@@ -14,11 +14,11 @@ export default function NewGame() {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
 
-  /* ===== ROULETTE ===== */
-  const wheelRef = useRef(null);
-  const spinInterval = useRef(null);
-  const rotation = useRef(0);
-  const speed = useRef(0);
+  /* ===== RANDOM PICKER ===== */
+  const listRef = useRef(null);
+  const intervalRef = useRef(null);
+  const speedRef = useRef(40);
+  const indexRef = useRef(0);
 
   /* =======================
      LOAD PLAYERS
@@ -52,38 +52,50 @@ export default function NewGame() {
   }
 
   /* =======================
-     ROULETTE LOGIC
+     RANDOM PICKER LOGIC
   ======================= */
-  function spinWheel() {
-    if (participants().length === 0) {
+  function startPicker() {
+    const list = participants();
+    if (list.length === 0) {
       setError("Sélectionne au moins un joueur.");
       return;
     }
     setError(null);
 
-    speed.current = 25;
+    speedRef.current = 40;
+    indexRef.current = 0;
 
-    spinInterval.current = setInterval(() => {
-      rotation.current += speed.current;
-      wheelRef.current.style.transform = `rotate(${rotation.current}deg)`;
-    }, 16);
+    intervalRef.current = setInterval(() => {
+      indexRef.current =
+        (indexRef.current + 1) % list.length;
+
+      listRef.current.style.transform = `translateY(-${
+        indexRef.current * 3
+      }rem)`;
+    }, speedRef.current);
   }
 
-  function stopWheel() {
+  function stopPicker() {
+    const list = participants();
+
     const slowDown = setInterval(() => {
-      speed.current *= 0.97;
+      speedRef.current *= 1.15;
 
-      if (speed.current < 0.5) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(() => {
+        indexRef.current =
+          (indexRef.current + 1) % list.length;
+
+        listRef.current.style.transform = `translateY(-${
+          indexRef.current * 3
+        }rem)`;
+      }, speedRef.current);
+
+      if (speedRef.current > 300) {
         clearInterval(slowDown);
-        clearInterval(spinInterval.current);
+        clearInterval(intervalRef.current);
 
-        const list = participants();
-        const angle = rotation.current % 360;
-        const slice = 360 / list.length;
-        const index =
-          Math.floor((360 - angle) / slice) % list.length;
-
-        const winner = list[index];
+        const winner = list[indexRef.current];
 
         if (step === "payer") {
           setPayer(winner.id);
@@ -93,7 +105,7 @@ export default function NewGame() {
           setStep("done");
         }
       }
-    }, 30);
+    }, 200);
   }
 
   /* =======================
@@ -103,7 +115,10 @@ export default function NewGame() {
     e.preventDefault();
     setError(null);
 
-    const selectedPlayers = Object.keys(played).filter((id) => played[id]);
+    const selectedPlayers = Object.keys(played).filter(
+      (id) => played[id]
+    );
+
     if (selectedPlayers.length === 0) {
       setError("Sélectionne au moins un joueur.");
       return;
@@ -158,9 +173,14 @@ export default function NewGame() {
   ======================= */
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <h2 className="text-lg font-semibold mb-4">Nouvelle partie</h2>
+      <h2 className="text-lg font-semibold mb-4">
+        Nouvelle partie
+      </h2>
 
-      <form onSubmit={submit} className="bg-white p-4 rounded shadow">
+      <form
+        onSubmit={submit}
+        className="bg-white p-4 rounded shadow"
+      >
         {error && (
           <div className="bg-red-100 text-red-700 p-2 rounded mb-3">
             {error}
@@ -169,28 +189,22 @@ export default function NewGame() {
 
         {/* MODE */}
         <div className="flex gap-4 mb-4">
-          <button
-            type="button"
-            onClick={() => setMode("manual")}
-            className={`px-4 py-2 rounded ${
-              mode === "manual"
-                ? "bg-coffee text-white"
-                : "bg-gray-200"
-            }`}
-          >
-            Mode manuel
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("draw")}
-            className={`px-4 py-2 rounded ${
-              mode === "draw"
-                ? "bg-coffee text-white"
-                : "bg-gray-200"
-            }`}
-          >
-            Mode tirage
-          </button>
+          {["manual", "draw"].map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={`px-4 py-2 rounded ${
+                mode === m
+                  ? "bg-coffee text-white"
+                  : "bg-gray-200"
+              }`}
+            >
+              {m === "manual"
+                ? "Mode manuel"
+                : "Mode tirage"}
+            </button>
+          ))}
         </div>
 
         {/* DATE */}
@@ -211,7 +225,9 @@ export default function NewGame() {
               <th className="p-2 text-left">Joueur</th>
               <th className="p-2 text-center">Joue</th>
               <th className="p-2 text-center">Paie</th>
-              <th className="p-2 text-center">Cherche</th>
+              <th className="p-2 text-center">
+                Cherche
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -225,29 +241,39 @@ export default function NewGame() {
                   }`}
                 >
                   <td className="p-2">{p.name}</td>
-                  <td className="p-2 text-center align-middle">
+                  <td className="p-2 text-center">
                     <input
                       type="checkbox"
                       checked={hasPlayed}
-                      onChange={() => togglePlayed(p.id)}
+                      onChange={() =>
+                        togglePlayed(p.id)
+                      }
                     />
                   </td>
-                  <td className="p-2 text-center align-middle">
+                  <td className="p-2 text-center">
                     <input
                       type="radio"
                       name="payer"
-                      disabled={!hasPlayed || mode === "draw"}
+                      disabled={
+                        !hasPlayed || mode === "draw"
+                      }
                       checked={payer === p.id}
-                      onChange={() => setPayer(p.id)}
+                      onChange={() =>
+                        setPayer(p.id)
+                      }
                     />
                   </td>
-                  <td className="p-2 text-center align-middle">
+                  <td className="p-2 text-center">
                     <input
                       type="radio"
                       name="fetcher"
-                      disabled={!hasPlayed || mode === "draw"}
+                      disabled={
+                        !hasPlayed || mode === "draw"
+                      }
                       checked={fetcher === p.id}
-                      onChange={() => setFetcher(p.id)}
+                      onChange={() =>
+                        setFetcher(p.id)
+                      }
                     />
                   </td>
                 </tr>
@@ -256,78 +282,75 @@ export default function NewGame() {
           </tbody>
         </table>
 
-        {/* ROULETTE */}
+        {/* RANDOM PICKER */}
         {mode === "draw" && (
-          <div className="text-center mb-6">
-            <div className="relative w-72 h-72 mx-auto mb-6">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-2xl z-10">
-                ▼
-              </div>
+          <div className="mb-6 text-center">
+            <h3 className="font-semibold mb-2">
+              {step === "payer"
+                ? "Qui paie le café ?"
+                : "Qui va chercher le café ?"}
+            </h3>
 
+            {payer && step === "fetcher" && (
+              <p className="mb-2 font-bold">
+                ☕ Payeur :{" "}
+                {
+                  players.find(
+                    (p) => p.id === payer
+                  )?.name
+                }
+              </p>
+            )}
+
+            <div className="h-12 overflow-hidden border rounded mb-3 bg-gray-50">
               <div
-                ref={wheelRef}
-                className="w-full h-full rounded-full border-8 border-gray-700 shadow-lg relative overflow-hidden transition-transform"
+                ref={listRef}
+                className="transition-transform"
               >
-                {participants().map((p, i) => {
-                  const total = participants().length;
-                  const angle = 360 / total;
-                  return (
-                    <div
-                      key={p.id}
-                      className="absolute w-1/2 h-1/2 top-1/2 left-1/2 origin-bottom-left"
-                      style={{
-                        transform: `rotate(${angle * i}deg)`,
-                        backgroundColor: `hsl(${(i * 360) / total},70%,60%)`,
-                        clipPath:
-                          "polygon(0 0,100% 0,0 100%)",
-                      }}
-                    >
-                      <div
-                        className="absolute left-2 top-6 text-xs font-bold text-white"
-                        style={{
-                          transform: `rotate(${angle / 2}deg)`,
-                        }}
-                      >
-                        {p.name}
-                      </div>
-                    </div>
-                  );
-                })}
+                {participants().map((p) => (
+                  <div
+                    key={p.id}
+                    className="h-12 flex items-center justify-center font-bold"
+                  >
+                    {p.name}
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="flex justify-center gap-4">
               <button
                 type="button"
-                onClick={spinWheel}
+                onClick={startPicker}
                 className="bg-green-600 text-white px-4 py-2 rounded"
               >
-                🎯 Lancer la roulette
+                ▶ Lancer le tirage
               </button>
               <button
                 type="button"
-                onClick={stopWheel}
+                onClick={stopPicker}
                 className="bg-red-600 text-white px-4 py-2 rounded"
               >
                 ⛔ Stop
               </button>
             </div>
-
-            {payer && step === "fetcher" && (
-              <p className="mt-4 font-bold">
-                ☕ Payeur :{" "}
-                {players.find((p) => p.id === payer)?.name}
-              </p>
-            )}
           </div>
         )}
 
         {step === "done" && (
           <div className="bg-green-50 p-3 rounded mb-3">
-            ☕ Paye : {players.find((p) => p.id === payer)?.name}
+            ☕ Paye :{" "}
+            {
+              players.find((p) => p.id === payer)
+                ?.name
+            }
             <br />
             🚶‍♂️ Cherche :{" "}
-            {players.find((p) => p.id === fetcher)?.name}
+            {
+              players.find(
+                (p) => p.id === fetcher
+              )?.name
+            }
             {payer === fetcher && (
               <div className="mt-2 font-bold text-yellow-700">
                 🎉 Doublette !
@@ -350,7 +373,9 @@ export default function NewGame() {
           className="border p-2 flex-1"
           placeholder="Nouveau joueur"
           value={newPlayer}
-          onChange={(e) => setNewPlayer(e.target.value)}
+          onChange={(e) =>
+            setNewPlayer(e.target.value)
+          }
         />
         <button
           type="button"
