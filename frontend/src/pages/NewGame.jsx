@@ -9,10 +9,13 @@ export default function NewGame() {
 
   const [mode, setMode] = useState("manual"); // manual | draw
   const [step, setStep] = useState("payer"); // payer | fetcher | done
+  const [running, setRunning] = useState(false);
+  const [blink, setBlink] = useState(false);
 
   const [newPlayer, setNewPlayer] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   /* ===== RANDOM PICKER ===== */
   const listRef = useRef(null);
@@ -20,9 +23,7 @@ export default function NewGame() {
   const speedRef = useRef(40);
   const indexRef = useRef(0);
 
-  /* =======================
-     LOAD PLAYERS
-  ======================= */
+  /* ===== LOAD PLAYERS ===== */
   function loadPlayers() {
     fetch("/api/players/")
       .then((r) => r.json())
@@ -33,9 +34,7 @@ export default function NewGame() {
     loadPlayers();
   }, []);
 
-  /* =======================
-     HELPERS
-  ======================= */
+  /* ===== HELPERS ===== */
   function togglePlayed(id) {
     setPlayed((prev) => {
       const next = { ...prev, [id]: !prev[id] };
@@ -51,27 +50,27 @@ export default function NewGame() {
     return players.filter((p) => played[p.id]);
   }
 
-  /* =======================
-     RANDOM PICKER LOGIC
-  ======================= */
+  /* ===== PICKER ===== */
+  function startOrStop() {
+    if (running) stopPicker();
+    else startPicker();
+  }
+
   function startPicker() {
     const list = participants();
     if (list.length === 0) {
       setError("Sélectionne au moins un joueur.");
       return;
     }
-    setError(null);
 
+    setError(null);
+    setRunning(true);
     speedRef.current = 40;
     indexRef.current = 0;
 
     intervalRef.current = setInterval(() => {
-      indexRef.current =
-        (indexRef.current + 1) % list.length;
-
-      listRef.current.style.transform = `translateY(-${
-        indexRef.current * 3
-      }rem)`;
+      indexRef.current = (indexRef.current + 1) % list.length;
+      listRef.current.style.transform = `translateY(-${indexRef.current * 3}rem)`;
     }, speedRef.current);
   }
 
@@ -83,44 +82,61 @@ export default function NewGame() {
 
       clearInterval(intervalRef.current);
       intervalRef.current = setInterval(() => {
-        indexRef.current =
-          (indexRef.current + 1) % list.length;
-
-        listRef.current.style.transform = `translateY(-${
-          indexRef.current * 3
-        }rem)`;
+        indexRef.current = (indexRef.current + 1) % list.length;
+        listRef.current.style.transform = `translateY(-${indexRef.current * 3}rem)`;
       }, speedRef.current);
 
-      if (speedRef.current > 300) {
+      if (speedRef.current > 320) {
         clearInterval(slowDown);
         clearInterval(intervalRef.current);
+        setRunning(false);
 
         const winner = list[indexRef.current];
 
         if (step === "payer") {
           setPayer(winner.id);
-          setStep("fetcher");
+          triggerBlink(() => setStep("fetcher"));
         } else {
           setFetcher(winner.id);
           setStep("done");
+          if (winner.id === payer) triggerConfetti();
         }
       }
     }, 200);
   }
 
-  /* =======================
-     SUBMIT
-  ======================= */
+  function triggerBlink(next) {
+    let count = 0;
+    const i = setInterval(() => {
+      setBlink((b) => !b);
+      count++;
+      if (count === 6) {
+        clearInterval(i);
+        setBlink(false);
+        next();
+      }
+    }, 250);
+  }
+
+  function triggerConfetti() {
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 3500);
+  }
+
+  /* ===== SUBMIT ===== */
   async function submit(e) {
     e.preventDefault();
     setError(null);
 
-    const selectedPlayers = Object.keys(played).filter(
-      (id) => played[id]
-    );
+    const selectedPlayers = Object.keys(played).filter((id) => played[id]);
 
     if (selectedPlayers.length === 0) {
       setError("Sélectionne au moins un joueur.");
+      return;
+    }
+
+    if (mode === "draw" && (!payer || !fetcher)) {
+      setError("Le tirage doit être terminé avant l’enregistrement.");
       return;
     }
 
@@ -149,9 +165,7 @@ export default function NewGame() {
     }
   }
 
-  /* =======================
-     ADD PLAYER
-  ======================= */
+  /* ===== ADD PLAYER ===== */
   async function addPlayer() {
     if (!newPlayer.trim()) return;
     setAdding(true);
@@ -168,19 +182,16 @@ export default function NewGame() {
     setAdding(false);
   }
 
-  /* =======================
-     RENDER
-  ======================= */
-  return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h2 className="text-lg font-semibold mb-4">
-        Nouvelle partie
-      </h2>
+  const disableSubmit = mode === "draw" && (!payer || !fetcher);
 
-      <form
-        onSubmit={submit}
-        className="bg-white p-4 rounded shadow"
-      >
+  /* ===== RENDER ===== */
+  return (
+    <div className="max-w-4xl mx-auto p-4 relative overflow-hidden">
+      {showConfetti && <Confetti />}
+
+      <h2 className="text-lg font-semibold mb-4">Nouvelle partie</h2>
+
+      <form onSubmit={submit} className="bg-white p-4 rounded shadow">
         {error && (
           <div className="bg-red-100 text-red-700 p-2 rounded mb-3">
             {error}
@@ -195,14 +206,10 @@ export default function NewGame() {
               type="button"
               onClick={() => setMode(m)}
               className={`px-4 py-2 rounded ${
-                mode === m
-                  ? "bg-coffee text-white"
-                  : "bg-gray-200"
+                mode === m ? "bg-coffee text-white" : "bg-gray-200"
               }`}
             >
-              {m === "manual"
-                ? "Mode manuel"
-                : "Mode tirage"}
+              {m === "manual" ? "Mode manuel" : "Mode tirage"}
             </button>
           ))}
         </div>
@@ -225,55 +232,38 @@ export default function NewGame() {
               <th className="p-2 text-left">Joueur</th>
               <th className="p-2 text-center">Joue</th>
               <th className="p-2 text-center">Paie</th>
-              <th className="p-2 text-center">
-                Cherche
-              </th>
+              <th className="p-2 text-center">Cherche</th>
             </tr>
           </thead>
           <tbody>
             {players.map((p) => {
               const hasPlayed = !!played[p.id];
               return (
-                <tr
-                  key={p.id}
-                  className={`border-b ${
-                    !hasPlayed ? "opacity-50" : ""
-                  }`}
-                >
+                <tr key={p.id} className={!hasPlayed ? "opacity-50" : ""}>
                   <td className="p-2">{p.name}</td>
                   <td className="p-2 text-center">
                     <input
                       type="checkbox"
                       checked={hasPlayed}
-                      onChange={() =>
-                        togglePlayed(p.id)
-                      }
+                      onChange={() => togglePlayed(p.id)}
                     />
                   </td>
                   <td className="p-2 text-center">
                     <input
                       type="radio"
                       name="payer"
-                      disabled={
-                        !hasPlayed || mode === "draw"
-                      }
+                      disabled={!hasPlayed || mode === "draw"}
                       checked={payer === p.id}
-                      onChange={() =>
-                        setPayer(p.id)
-                      }
+                      onChange={() => setPayer(p.id)}
                     />
                   </td>
                   <td className="p-2 text-center">
                     <input
                       type="radio"
                       name="fetcher"
-                      disabled={
-                        !hasPlayed || mode === "draw"
-                      }
+                      disabled={!hasPlayed || mode === "draw"}
                       checked={fetcher === p.id}
-                      onChange={() =>
-                        setFetcher(p.id)
-                      }
+                      onChange={() => setFetcher(p.id)}
                     />
                   </td>
                 </tr>
@@ -282,31 +272,26 @@ export default function NewGame() {
           </tbody>
         </table>
 
-        {/* RANDOM PICKER */}
+        {/* DRAW MODE */}
         {mode === "draw" && (
           <div className="mb-6 text-center">
             <h3 className="font-semibold mb-2">
-              {step === "payer"
-                ? "Qui paie le café ?"
-                : "Qui va chercher le café ?"}
+              {step === "payer" ? "💳 Qui paye ?" : "🚶 Qui va chercher ?"}
             </h3>
 
-            {payer && step === "fetcher" && (
-              <p className="mb-2 font-bold">
-                ☕ Payeur :{" "}
-                {
-                  players.find(
-                    (p) => p.id === payer
-                  )?.name
-                }
+            {payer && step !== "payer" && (
+              <p
+                className={`mb-2 font-bold transition ${
+                  blink ? "opacity-0" : "opacity-100"
+                }`}
+              >
+                💳 Qui paye :{" "}
+                {players.find((p) => p.id === payer)?.name}
               </p>
             )}
 
             <div className="h-12 overflow-hidden border rounded mb-3 bg-gray-50">
-              <div
-                ref={listRef}
-                className="transition-transform"
-              >
+              <div ref={listRef}>
                 {participants().map((p) => (
                   <div
                     key={p.id}
@@ -318,39 +303,24 @@ export default function NewGame() {
               </div>
             </div>
 
-            <div className="flex justify-center gap-4">
-              <button
-                type="button"
-                onClick={startPicker}
-                className="bg-green-600 text-white px-4 py-2 rounded"
-              >
-                ▶ Lancer le tirage
-              </button>
-              <button
-                type="button"
-                onClick={stopPicker}
-                className="bg-red-600 text-white px-4 py-2 rounded"
-              >
-                ⛔ Stop
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={startOrStop}
+              className={`px-6 py-2 rounded text-white ${
+                running ? "bg-red-600" : "bg-green-600"
+              }`}
+            >
+              {running ? "🛑 Stop" : "▶ Lancer"}
+            </button>
           </div>
         )}
 
         {step === "done" && (
-          <div className="bg-green-50 p-3 rounded mb-3">
-            ☕ Paye :{" "}
-            {
-              players.find((p) => p.id === payer)
-                ?.name
-            }
+          <div className="bg-blue-50 p-3 rounded mb-3">
+            💳 Qui paye : {players.find((p) => p.id === payer)?.name}
             <br />
-            🚶‍♂️ Cherche :{" "}
-            {
-              players.find(
-                (p) => p.id === fetcher
-              )?.name
-            }
+            🚶 Qui va chercher :{" "}
+            {players.find((p) => p.id === fetcher)?.name}
             {payer === fetcher && (
               <div className="mt-2 font-bold text-yellow-700">
                 🎉 Doublette !
@@ -360,22 +330,21 @@ export default function NewGame() {
         )}
 
         <button
-          className="bg-coffee text-white px-4 py-2 rounded"
+          className="bg-coffee text-white px-4 py-2 rounded disabled:opacity-40"
           type="submit"
+          disabled={disableSubmit}
         >
           Enregistrer
         </button>
       </form>
 
-      {/* AJOUT JOUEUR */}
+      {/* ADD PLAYER */}
       <div className="bg-white p-4 rounded shadow mt-6 flex gap-3">
         <input
           className="border p-2 flex-1"
           placeholder="Nouveau joueur"
           value={newPlayer}
-          onChange={(e) =>
-            setNewPlayer(e.target.value)
-          }
+          onChange={(e) => setNewPlayer(e.target.value)}
         />
         <button
           type="button"
@@ -386,6 +355,40 @@ export default function NewGame() {
           Ajouter
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ===== CONFETTI COMPONENT ===== */
+function Confetti() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {Array.from({ length: 30 }).map((_, i) => (
+        <span
+          key={i}
+          className="confetti"
+          style={{
+            left: Math.random() * 100 + "%",
+            animationDelay: Math.random() * 2 + "s",
+          }}
+        />
+      ))}
+      <style>{`
+        .confetti {
+          position: absolute;
+          top: -10px;
+          width: 8px;
+          height: 8px;
+          background: hsl(${Math.random() * 360}, 70%, 60%);
+          animation: fall 3s linear forwards;
+        }
+        @keyframes fall {
+          to {
+            transform: translateY(110vh) rotate(720deg);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }
