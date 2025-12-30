@@ -16,6 +16,7 @@ export default function NewGame() {
   const [rollingIndex, setRollingIndex] = useState(0);
   const [running, setRunning] = useState(false);
   const [blink, setBlink] = useState(false);
+  const [holdName, setHoldName] = useState(false);
 
   const intervalRef = useRef(null);
   const speedRef = useRef(60);
@@ -54,7 +55,7 @@ export default function NewGame() {
   }
 
   /* ======================
-     DRAW WITH DECELERATION
+     DRAW LOGIC
   ====================== */
   function startDraw() {
     if (participants().length === 0) {
@@ -78,9 +79,9 @@ export default function NewGame() {
     clearTimeout(intervalRef.current);
 
     function slowDown() {
-      speedRef.current += 30;
+      speedRef.current += 35;
 
-      if (speedRef.current > 400) {
+      if (speedRef.current > 420) {
         finalizeDraw();
         return;
       }
@@ -95,6 +96,7 @@ export default function NewGame() {
   function finalizeDraw() {
     clearTimeout(intervalRef.current);
     setRunning(false);
+    setHoldName(true);
 
     const winner = participants()[rollingIndex];
     if (!winner) return;
@@ -108,25 +110,29 @@ export default function NewGame() {
     } else if (step === "fetcher") {
       setFetcher(winner.id);
       setStep("done");
-      explodeConfetti();
+      if (payer === winner.id) explodeConfetti();
     }
+
+    setTimeout(() => setHoldName(false), 5000);
   }
 
   /* ======================
-     CONFETTI EXPLOSION
+     CONFETTI
   ====================== */
   function explodeConfetti() {
     if (!drawRef.current) return;
 
-    for (let i = 0; i < 40; i++) {
+    const rect = drawRef.current.getBoundingClientRect();
+
+    for (let i = 0; i < 50; i++) {
       const el = document.createElement("span");
       el.className = "confetti";
-      el.style.left = "50%";
-      el.style.top = "50%";
-      el.style.setProperty("--x", `${Math.random() * 260 - 130}px`);
-      el.style.setProperty("--y", `${Math.random() * -240 - 80}px`);
+      el.style.left = `${rect.width / 2}px`;
+      el.style.top = "70px";
+      el.style.setProperty("--x", `${Math.random() * 300 - 150}px`);
+      el.style.setProperty("--y", `${Math.random() * -300 - 120}px`);
       drawRef.current.appendChild(el);
-      setTimeout(() => el.remove(), 1200);
+      setTimeout(() => el.remove(), 1300);
     }
   }
 
@@ -178,6 +184,9 @@ export default function NewGame() {
     setAdding(false);
   }
 
+  const currentName =
+    participants()[rollingIndex]?.name || "???";
+
   /* ======================
      RENDER
   ====================== */
@@ -222,62 +231,69 @@ export default function NewGame() {
           />
         </label>
 
-        {/* TABLE PLAYERS */}
-        <table className="w-full table-fixed border-collapse mb-4">
+        {/* TABLE */}
+        <table className="w-full table-fixed mb-4">
           <thead>
-            <tr className="bg-gray-100 text-base font-semibold">
-              <th className="w-1/4 p-2 text-center">Joueur</th>
-              <th className="w-1/4 p-2 text-center">Joue</th>
-              <th className="w-1/4 p-2 text-center">Paie</th>
-              <th className="w-1/4 p-2 text-center">Cherche</th>
+            <tr className="bg-gray-100 text-lg font-semibold">
+              <th className="w-1/4 text-center p-2">Joueur</th>
+              <th className="w-1/4 text-center p-2">Joue</th>
+              <th className="w-1/4 text-center p-2">Paie</th>
+              <th className="w-1/4 text-center p-2">Cherche</th>
             </tr>
           </thead>
           <tbody>
-            {players.map((p) => (
-              <tr
-                key={p.id}
-                className={`border-b ${
-                  !played[p.id] ? "opacity-50" : ""
-                }`}
-              >
-                <td className="p-2 text-center align-middle">
-                  {p.name}
-                </td>
+            {players.map((p) => {
+              const highlighted =
+                p.id === payer || p.id === fetcher;
 
-                <td className="p-2 text-center align-middle">
-                  <input
-                    type="checkbox"
-                    checked={!!played[p.id]}
-                    onChange={() => togglePlayed(p.id)}
-                  />
-                </td>
-
-                <td className="p-2 text-center align-middle">
-                  <input
-                    type="radio"
-                    disabled={!played[p.id] || mode === "draw"}
-                    checked={payer === p.id}
-                    onChange={() => setPayer(p.id)}
-                  />
-                </td>
-
-                <td className="p-2 text-center align-middle">
-                  <input
-                    type="radio"
-                    disabled={!played[p.id] || mode === "draw"}
-                    checked={fetcher === p.id}
-                    onChange={() => setFetcher(p.id)}
-                  />
-                </td>
-              </tr>
-            ))}
+              return (
+                <tr
+                  key={p.id}
+                  className={`border-b transition ${
+                    highlighted ? "bg-yellow-100" : ""
+                  }`}
+                >
+                  <td className="text-center p-2">{p.name}</td>
+                  <td className="text-center p-2">
+                    <input
+                      type="checkbox"
+                      checked={!!played[p.id]}
+                      onChange={() => togglePlayed(p.id)}
+                    />
+                  </td>
+                  <td className="text-center p-2">
+                    <input
+                      type="radio"
+                      disabled={!played[p.id] || mode === "draw"}
+                      checked={payer === p.id}
+                      onChange={() => setPayer(p.id)}
+                    />
+                  </td>
+                  <td className="text-center p-2">
+                    <input
+                      type="radio"
+                      disabled={!played[p.id] || mode === "draw"}
+                      checked={fetcher === p.id}
+                      onChange={() => setFetcher(p.id)}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
-        {/* PAYEUR */}
+        {/* RESULT BLOCKS */}
         {payer && (
           <div className="bg-green-100 p-3 rounded mb-3 flex justify-between">
             <p>💳 Qui paye : {players.find(p => p.id === payer)?.name}</p>
+            <span className="text-green-600 font-bold">✔</span>
+          </div>
+        )}
+
+        {fetcher && (
+          <div className="bg-blue-100 p-3 rounded mb-3 flex justify-between">
+            <p>🚶 Qui va chercher : {players.find(p => p.id === fetcher)?.name}</p>
             <span className="text-green-600 font-bold">✔</span>
           </div>
         )}
@@ -299,28 +315,20 @@ export default function NewGame() {
                 blink ? "animate-pulse text-green-600" : ""
               }`}
             >
-              {running
-                ? participants()[rollingIndex]?.name
-                : "???"}
+              {running || holdName ? currentName : "???"}
             </div>
 
-            <button
-              type="button"
-              onClick={running ? stopDraw : startDraw}
-              className={`mt-3 px-4 py-2 rounded text-white ${
-                running ? "bg-red-600" : "bg-coffee"
-              }`}
-            >
-              {running ? "🛑 Stop" : "Lancer la roulette"}
-            </button>
-          </div>
-        )}
-
-        {/* FETCHER */}
-        {fetcher && (
-          <div className="bg-blue-100 p-3 rounded mb-3 flex justify-between">
-            <p>🚶 Qui va chercher : {players.find(p => p.id === fetcher)?.name}</p>
-            <span className="text-green-600 font-bold">✔</span>
+            {!fetcher && (
+              <button
+                type="button"
+                onClick={running ? stopDraw : startDraw}
+                className={`mt-3 px-4 py-2 rounded text-white ${
+                  running ? "bg-red-600" : "bg-coffee"
+                }`}
+              >
+                {running ? "🛑 Stop" : "Lancer la roulette"}
+              </button>
+            )}
           </div>
         )}
 
@@ -352,10 +360,11 @@ export default function NewGame() {
       <style>{`
         .confetti {
           position: absolute;
-          width: 8px;
-          height: 8px;
+          width: 10px;
+          height: 10px;
+          border-radius: 2px;
           background: hsl(${Math.random() * 360}, 90%, 60%);
-          animation: explode 1.1s ease-out forwards;
+          animation: explode 1.2s cubic-bezier(.2,.8,.2,1) forwards;
         }
         @keyframes explode {
           to {
