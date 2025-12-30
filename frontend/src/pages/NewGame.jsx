@@ -8,141 +8,137 @@ export default function NewGame() {
   const [fetcher, setFetcher] = useState(null);
 
   const [mode, setMode] = useState("manual"); // manual | draw
-  const [step, setStep] = useState("payer"); // payer | fetcher | done
+  const [step, setStep] = useState("idle"); // idle | payer | fetcher | done
+
+  const [rollingIndex, setRollingIndex] = useState(0);
   const [running, setRunning] = useState(false);
   const [blink, setBlink] = useState(false);
+
+  const [liveStats, setLiveStats] = useState({});
+  const intervalRef = useRef(null);
+  const drawRef = useRef(null);
 
   const [newPlayer, setNewPlayer] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
-  const [showConfetti, setShowConfetti] = useState(false);
 
-  /* ===== RANDOM PICKER ===== */
-  const listRef = useRef(null);
-  const intervalRef = useRef(null);
-  const speedRef = useRef(40);
-  const indexRef = useRef(0);
-
-  /* ===== LOAD PLAYERS ===== */
+  /* ======================
+     LOAD PLAYERS
+  ====================== */
   function loadPlayers() {
     fetch("/api/players/")
       .then((r) => r.json())
       .then(setPlayers);
   }
 
-  useEffect(() => {
-    loadPlayers();
-  }, []);
+  useEffect(loadPlayers, []);
 
-  /* ===== HELPERS ===== */
+  const participants = () =>
+    players.filter((p) => played[p.id]);
+
+  /* ======================
+     TOGGLE PLAYED
+  ====================== */
   function togglePlayed(id) {
-    setPlayed((prev) => {
-      const next = { ...prev, [id]: !prev[id] };
-      if (!next[id]) {
+    setPlayed((p) => {
+      const n = { ...p, [id]: !p[id] };
+      if (!n[id]) {
         if (payer === id) setPayer(null);
         if (fetcher === id) setFetcher(null);
       }
-      return next;
+      return n;
     });
   }
 
-  function participants() {
-    return players.filter((p) => played[p.id]);
-  }
-
-  /* ===== PICKER ===== */
+  /* ======================
+     DRAW LOGIC
+  ====================== */
   function startOrStop() {
-    if (running) stopPicker();
-    else startPicker();
-  }
+    if (running) return stopDraw();
 
-  function startPicker() {
-    const list = participants();
-    if (list.length === 0) {
+    if (participants().length === 0) {
       setError("Sélectionne au moins un joueur.");
       return;
     }
 
     setError(null);
     setRunning(true);
-    speedRef.current = 40;
-    indexRef.current = 0;
+
+    const stats = {};
+    participants().forEach((p) => (stats[p.id] = 0));
+    setLiveStats(stats);
 
     intervalRef.current = setInterval(() => {
-      indexRef.current = (indexRef.current + 1) % list.length;
-      listRef.current.style.transform = `translateY(-${indexRef.current * 3}rem)`;
-    }, speedRef.current);
-  }
-
-  function stopPicker() {
-    const list = participants();
-
-    const slowDown = setInterval(() => {
-      speedRef.current *= 1.15;
-
-      clearInterval(intervalRef.current);
-      intervalRef.current = setInterval(() => {
-        indexRef.current = (indexRef.current + 1) % list.length;
-        listRef.current.style.transform = `translateY(-${indexRef.current * 3}rem)`;
-      }, speedRef.current);
-
-      if (speedRef.current > 320) {
-        clearInterval(slowDown);
-        clearInterval(intervalRef.current);
-        setRunning(false);
-
-        const winner = list[indexRef.current];
-
-        if (step === "payer") {
-          setPayer(winner.id);
-          triggerBlink(() => setStep("fetcher"));
-        } else {
-          setFetcher(winner.id);
-          setStep("done");
-          if (winner.id === payer) triggerConfetti();
-        }
+      setRollingIndex((i) => (i + 1) % participants().length);
+      const id = participants()[rollingIndex]?.id;
+      if (id) {
+        setLiveStats((s) => ({
+          ...s,
+          [id]: (s[id] || 0) + 1,
+        }));
       }
-    }, 200);
+    }, 80);
   }
 
-  function triggerBlink(next) {
-    let count = 0;
-    const i = setInterval(() => {
-      setBlink((b) => !b);
-      count++;
-      if (count === 6) {
-        clearInterval(i);
-        setBlink(false);
-        next();
-      }
-    }, 250);
+  function stopDraw() {
+    clearInterval(intervalRef.current);
+    setRunning(false);
+
+    const winner = participants()[rollingIndex];
+    if (!winner) return;
+
+    setBlink(true);
+    setTimeout(() => setBlink(false), 900);
+
+    if (step === "idle" || step === "payer") {
+      setPayer(winner.id);
+      setStep("fetcher");
+      setTimeout(startOrStop, 800);
+    } else {
+      setFetcher(winner.id);
+      setStep("done");
+      explodeConfetti();
+    }
   }
 
-  function triggerConfetti() {
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 3500);
+  /* ======================
+     CONFETTI EXPLOSION
+  ====================== */
+  function explodeConfetti() {
+    if (!drawRef.current) return;
+
+    for (let i = 0; i < 25; i++) {
+      const el = document.createElement("span");
+      el.className = "confetti";
+      el.style.left = "50%";
+      el.style.top = "50%";
+      el.style.setProperty("--x", `${Math.random() * 200 - 100}px`);
+      el.style.setProperty("--y", `${Math.random() * -200 - 50}px`);
+      drawRef.current.appendChild(el);
+      setTimeout(() => el.remove(), 1200);
+    }
   }
 
-  /* ===== SUBMIT ===== */
+  /* ======================
+     SUBMIT
+  ====================== */
   async function submit(e) {
     e.preventDefault();
     setError(null);
 
-    const selectedPlayers = Object.keys(played).filter((id) => played[id]);
-
-    if (selectedPlayers.length === 0) {
-      setError("Sélectionne au moins un joueur.");
+    if (participants().length === 0) {
+      setError("Aucun joueur sélectionné.");
       return;
     }
 
     if (mode === "draw" && (!payer || !fetcher)) {
-      setError("Le tirage doit être terminé avant l’enregistrement.");
+      setError("Tirage incomplet.");
       return;
     }
 
     const payload = {
       date,
-      players: selectedPlayers.map(Number),
+      players: participants().map((p) => p.id),
       payer,
       fetcher,
     };
@@ -158,38 +154,42 @@ export default function NewGame() {
       setPlayed({});
       setPayer(null);
       setFetcher(null);
-      setStep("payer");
-      setMode("manual");
-    } else {
-      setError("Erreur lors de l'enregistrement");
-    }
+      setStep("idle");
+    } else setError("Erreur");
   }
 
-  /* ===== ADD PLAYER ===== */
   async function addPlayer() {
     if (!newPlayer.trim()) return;
     setAdding(true);
-
-    const res = await fetch(
-      `/api/players/?name=${encodeURIComponent(newPlayer)}`,
-      { method: "POST" }
-    );
-
-    if (res.ok) {
-      setNewPlayer("");
-      loadPlayers();
-    }
+    await fetch(`/api/players/?name=${newPlayer}`, { method: "POST" });
+    setNewPlayer("");
+    loadPlayers();
     setAdding(false);
   }
 
-  const disableSubmit = mode === "draw" && (!payer || !fetcher);
+  const doublette = payer && fetcher && payer === fetcher;
 
-  /* ===== RENDER ===== */
+  /* ======================
+     RENDER
+  ====================== */
   return (
-    <div className="max-w-4xl mx-auto p-4 relative overflow-hidden">
-      {showConfetti && <Confetti />}
+    <div className="max-w-4xl mx-auto p-4">
+      <h2 className="font-semibold text-lg mb-4">Nouvelle partie</h2>
 
-      <h2 className="text-lg font-semibold mb-4">Nouvelle partie</h2>
+      {/* MODE */}
+      <div className="flex gap-3 mb-4">
+        {["manual", "draw"].map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`px-3 py-1 rounded ${
+              mode === m ? "bg-blue-600 text-white" : "bg-gray-200"
+            }`}
+          >
+            {m === "manual" ? "Mode manuel" : "Mode tirage"}
+          </button>
+        ))}
+      </div>
 
       <form onSubmit={submit} className="bg-white p-4 rounded shadow">
         {error && (
@@ -198,30 +198,13 @@ export default function NewGame() {
           </div>
         )}
 
-        {/* MODE */}
-        <div className="flex gap-4 mb-4">
-          {["manual", "draw"].map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`px-4 py-2 rounded ${
-                mode === m ? "bg-coffee text-white" : "bg-gray-200"
-              }`}
-            >
-              {m === "manual" ? "Mode manuel" : "Mode tirage"}
-            </button>
-          ))}
-        </div>
-
-        {/* DATE */}
         <label className="block mb-3">
           Date
           <input
-            className="border p-2 ml-3"
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
+            className="border ml-3 p-1"
           />
         </label>
 
@@ -229,110 +212,94 @@ export default function NewGame() {
         <table className="w-full text-sm mb-4">
           <thead>
             <tr className="bg-gray-100">
-              <th className="p-2 text-left">Joueur</th>
-              <th className="p-2 text-center">Joue</th>
-              <th className="p-2 text-center">Paie</th>
-              <th className="p-2 text-center">Cherche</th>
+              <th>Joueur</th>
+              <th className="text-center">Joue</th>
+              <th className="text-center">Paie</th>
+              <th className="text-center">Cherche</th>
             </tr>
           </thead>
           <tbody>
-            {players.map((p) => {
-              const hasPlayed = !!played[p.id];
-              return (
-                <tr key={p.id} className={!hasPlayed ? "opacity-50" : ""}>
-                  <td className="p-2">{p.name}</td>
-                  <td className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={hasPlayed}
-                      onChange={() => togglePlayed(p.id)}
-                    />
-                  </td>
-                  <td className="p-2 text-center">
-                    <input
-                      type="radio"
-                      name="payer"
-                      disabled={!hasPlayed || mode === "draw"}
-                      checked={payer === p.id}
-                      onChange={() => setPayer(p.id)}
-                    />
-                  </td>
-                  <td className="p-2 text-center">
-                    <input
-                      type="radio"
-                      name="fetcher"
-                      disabled={!hasPlayed || mode === "draw"}
-                      checked={fetcher === p.id}
-                      onChange={() => setFetcher(p.id)}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
+            {players.map((p) => (
+              <tr key={p.id} className={!played[p.id] ? "opacity-50" : ""}>
+                <td className="p-2">{p.name}</td>
+                <td className="text-center">
+                  <input
+                    type="checkbox"
+                    checked={!!played[p.id]}
+                    onChange={() => togglePlayed(p.id)}
+                  />
+                </td>
+                <td className="text-center">
+                  <input
+                    type="radio"
+                    disabled={!played[p.id] || mode === "draw"}
+                    checked={payer === p.id}
+                    onChange={() => setPayer(p.id)}
+                  />
+                </td>
+                <td className="text-center">
+                  <input
+                    type="radio"
+                    disabled={!played[p.id] || mode === "draw"}
+                    checked={fetcher === p.id}
+                    onChange={() => setFetcher(p.id)}
+                  />
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
 
-        {/* DRAW MODE */}
-        {mode === "draw" && (
-          <div className="mb-6 text-center">
-            <h3 className="font-semibold mb-2">
-              {step === "payer" ? "💳 Qui paye ?" : "🚶 Qui va chercher ?"}
-            </h3>
+        {/* RESULT PAYEUR */}
+        {payer && (
+          <div className="bg-green-100 p-3 rounded mb-3 flex justify-between items-center">
+            <p>💳 Qui paye : {players.find(p => p.id === payer)?.name}</p>
+            <span className="text-green-600 font-bold">✔</span>
+          </div>
+        )}
 
-            {payer && step !== "payer" && (
-              <p
-                className={`mb-2 font-bold transition ${
-                  blink ? "opacity-0" : "opacity-100"
-                }`}
-              >
-                💳 Qui paye :{" "}
-                {players.find((p) => p.id === payer)?.name}
-              </p>
-            )}
+        {/* DRAW */}
+        {mode === "draw" && step !== "done" && (
+          <div
+            ref={drawRef}
+            className="relative bg-gray-50 p-4 rounded mb-3 text-center overflow-hidden"
+          >
+            <p className="font-semibold mb-2">
+              {step === "fetcher"
+                ? "🚶 Qui va chercher ?"
+                : "💳 Qui paye ?"}
+            </p>
 
-            <div className="h-12 overflow-hidden border rounded mb-3 bg-gray-50">
-              <div ref={listRef}>
-                {participants().map((p) => (
-                  <div
-                    key={p.id}
-                    className="h-12 flex items-center justify-center font-bold"
-                  >
-                    {p.name}
-                  </div>
-                ))}
-              </div>
+            <div
+              className={`text-2xl font-bold h-10 ${
+                blink ? "animate-pulse text-green-600" : ""
+              }`}
+            >
+              {participants()[rollingIndex]?.name || "—"}
             </div>
 
             <button
               type="button"
               onClick={startOrStop}
-              className={`px-6 py-2 rounded text-white ${
-                running ? "bg-red-600" : "bg-green-600"
+              className={`mt-3 px-4 py-2 rounded text-white ${
+                running ? "bg-red-600" : "bg-coffee"
               }`}
             >
-              {running ? "🛑 Stop" : "▶ Lancer"}
+              {running ? "🛑 Stop" : "Lancer la roulette"}
             </button>
           </div>
         )}
 
-        {step === "done" && (
+        {/* RESULT FETCHER */}
+        {fetcher && (
           <div className="bg-blue-50 p-3 rounded mb-3">
-            💳 Qui paye : {players.find((p) => p.id === payer)?.name}
-            <br />
-            🚶 Qui va chercher :{" "}
-            {players.find((p) => p.id === fetcher)?.name}
-            {payer === fetcher && (
-              <div className="mt-2 font-bold text-yellow-700">
-                🎉 Doublette !
-              </div>
-            )}
+            <p>🚶 Qui va chercher : {players.find(p => p.id === fetcher)?.name}</p>
           </div>
         )}
 
         <button
-          className="bg-coffee text-white px-4 py-2 rounded disabled:opacity-40"
-          type="submit"
-          disabled={disableSubmit}
+          className="bg-coffee text-white px-4 py-2 rounded"
+          disabled={mode === "draw" && (!payer || !fetcher)}
         >
           Enregistrer
         </button>
@@ -342,12 +309,11 @@ export default function NewGame() {
       <div className="bg-white p-4 rounded shadow mt-6 flex gap-3">
         <input
           className="border p-2 flex-1"
-          placeholder="Nouveau joueur"
           value={newPlayer}
           onChange={(e) => setNewPlayer(e.target.value)}
+          placeholder="Nouveau joueur"
         />
         <button
-          type="button"
           onClick={addPlayer}
           disabled={adding}
           className="bg-green-600 text-white px-4 py-2 rounded"
@@ -355,36 +321,20 @@ export default function NewGame() {
           Ajouter
         </button>
       </div>
-    </div>
-  );
-}
 
-/* ===== CONFETTI COMPONENT ===== */
-function Confetti() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {Array.from({ length: 30 }).map((_, i) => (
-        <span
-          key={i}
-          className="confetti"
-          style={{
-            left: Math.random() * 100 + "%",
-            animationDelay: Math.random() * 2 + "s",
-          }}
-        />
-      ))}
+      {/* CONFETTI CSS */}
       <style>{`
         .confetti {
           position: absolute;
-          top: -10px;
           width: 8px;
           height: 8px;
-          background: hsl(${Math.random() * 360}, 70%, 60%);
-          animation: fall 3s linear forwards;
+          background: hsl(${Math.random() * 360}, 90%, 60%);
+          border-radius: 2px;
+          animation: pop 1.1s ease-out forwards;
         }
-        @keyframes fall {
+        @keyframes pop {
           to {
-            transform: translateY(110vh) rotate(720deg);
+            transform: translate(var(--x), var(--y)) rotate(720deg);
             opacity: 0;
           }
         }
