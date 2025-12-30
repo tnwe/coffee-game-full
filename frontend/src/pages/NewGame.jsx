@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from "react";
 
 export default function NewGame() {
   const [players, setPlayers] = useState([]);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [played, setPlayed] = useState({});
   const [payer, setPayer] = useState(null);
   const [fetcher, setFetcher] = useState(null);
+
+  const [date, setDate] = useState(
+    new Date().toISOString().slice(0, 10)
+  );
 
   const [mode, setMode] = useState("manual"); // manual | draw
   const [step, setStep] = useState("idle"); // idle | payer | fetcher | done
@@ -15,6 +18,7 @@ export default function NewGame() {
   const [blink, setBlink] = useState(false);
 
   const intervalRef = useRef(null);
+  const speedRef = useRef(60);
   const drawRef = useRef(null);
 
   const [newPlayer, setNewPlayer] = useState("");
@@ -50,7 +54,7 @@ export default function NewGame() {
   }
 
   /* ======================
-     DRAW LOGIC
+     DRAW WITH DECELERATION
   ====================== */
   function startDraw() {
     if (participants().length === 0) {
@@ -60,14 +64,36 @@ export default function NewGame() {
 
     setError(null);
     setRunning(true);
+    speedRef.current = 60;
 
-    intervalRef.current = setInterval(() => {
+    function spin() {
       setRollingIndex((i) => (i + 1) % participants().length);
-    }, 80);
+      intervalRef.current = setTimeout(spin, speedRef.current);
+    }
+
+    spin();
   }
 
   function stopDraw() {
-    clearInterval(intervalRef.current);
+    clearTimeout(intervalRef.current);
+
+    function slowDown() {
+      speedRef.current += 30;
+
+      if (speedRef.current > 400) {
+        finalizeDraw();
+        return;
+      }
+
+      setRollingIndex((i) => (i + 1) % participants().length);
+      intervalRef.current = setTimeout(slowDown, speedRef.current);
+    }
+
+    slowDown();
+  }
+
+  function finalizeDraw() {
+    clearTimeout(intervalRef.current);
     setRunning(false);
 
     const winner = participants()[rollingIndex];
@@ -92,13 +118,13 @@ export default function NewGame() {
   function explodeConfetti() {
     if (!drawRef.current) return;
 
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 40; i++) {
       const el = document.createElement("span");
       el.className = "confetti";
       el.style.left = "50%";
       el.style.top = "50%";
-      el.style.setProperty("--x", `${Math.random() * 240 - 120}px`);
-      el.style.setProperty("--y", `${Math.random() * -220 - 60}px`);
+      el.style.setProperty("--x", `${Math.random() * 260 - 130}px`);
+      el.style.setProperty("--y", `${Math.random() * -240 - 80}px`);
       drawRef.current.appendChild(el);
       setTimeout(() => el.remove(), 1200);
     }
@@ -157,7 +183,9 @@ export default function NewGame() {
   ====================== */
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <h2 className="font-semibold text-lg mb-4">Nouvelle partie</h2>
+      <h2 className="font-semibold text-lg mb-4">
+        Nouvelle partie
+      </h2>
 
       {/* MODE */}
       <div className="flex gap-3 mb-4">
@@ -166,7 +194,9 @@ export default function NewGame() {
             key={m}
             onClick={() => setMode(m)}
             className={`px-3 py-1 rounded ${
-              mode === m ? "bg-blue-600 text-white" : "bg-gray-200"
+              mode === m
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200"
             }`}
           >
             {m === "manual" ? "Mode manuel" : "Mode tirage"}
@@ -181,28 +211,48 @@ export default function NewGame() {
           </div>
         )}
 
-        {/* TABLE */}
-        <table className="w-full text-sm mb-4">
+        {/* DATE */}
+        <label className="block mb-4 text-sm">
+          Date
+          <input
+            type="date"
+            className="border p-2 ml-3"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </label>
+
+        {/* TABLE PLAYERS */}
+        <table className="w-full table-fixed border-collapse mb-4">
           <thead>
-            <tr className="bg-gray-100">
-              <th>Joueur</th>
-              <th className="text-center">Joue</th>
-              <th className="text-center">Paie</th>
-              <th className="text-center">Cherche</th>
+            <tr className="bg-gray-100 text-base font-semibold">
+              <th className="w-1/4 p-2 text-center">Joueur</th>
+              <th className="w-1/4 p-2 text-center">Joue</th>
+              <th className="w-1/4 p-2 text-center">Paie</th>
+              <th className="w-1/4 p-2 text-center">Cherche</th>
             </tr>
           </thead>
           <tbody>
             {players.map((p) => (
-              <tr key={p.id} className={!played[p.id] ? "opacity-50" : ""}>
-                <td className="p-2">{p.name}</td>
-                <td className="text-center">
+              <tr
+                key={p.id}
+                className={`border-b ${
+                  !played[p.id] ? "opacity-50" : ""
+                }`}
+              >
+                <td className="p-2 text-center align-middle">
+                  {p.name}
+                </td>
+
+                <td className="p-2 text-center align-middle">
                   <input
                     type="checkbox"
                     checked={!!played[p.id]}
                     onChange={() => togglePlayed(p.id)}
                   />
                 </td>
-                <td className="text-center">
+
+                <td className="p-2 text-center align-middle">
                   <input
                     type="radio"
                     disabled={!played[p.id] || mode === "draw"}
@@ -210,7 +260,8 @@ export default function NewGame() {
                     onChange={() => setPayer(p.id)}
                   />
                 </td>
-                <td className="text-center">
+
+                <td className="p-2 text-center align-middle">
                   <input
                     type="radio"
                     disabled={!played[p.id] || mode === "draw"}
@@ -223,7 +274,7 @@ export default function NewGame() {
           </tbody>
         </table>
 
-        {/* PAYEUR VALIDÉ */}
+        {/* PAYEUR */}
         {payer && (
           <div className="bg-green-100 p-3 rounded mb-3 flex justify-between">
             <p>💳 Qui paye : {players.find(p => p.id === payer)?.name}</p>
@@ -267,9 +318,9 @@ export default function NewGame() {
 
         {/* FETCHER */}
         {fetcher && (
-          <div className="bg-blue-50 p-3 rounded mb-3">
-            🚶 Qui va chercher :{" "}
-            {players.find(p => p.id === fetcher)?.name}
+          <div className="bg-blue-100 p-3 rounded mb-3 flex justify-between">
+            <p>🚶 Qui va chercher : {players.find(p => p.id === fetcher)?.name}</p>
+            <span className="text-green-600 font-bold">✔</span>
           </div>
         )}
 
@@ -304,9 +355,9 @@ export default function NewGame() {
           width: 8px;
           height: 8px;
           background: hsl(${Math.random() * 360}, 90%, 60%);
-          animation: pop 1.1s ease-out forwards;
+          animation: explode 1.1s ease-out forwards;
         }
-        @keyframes pop {
+        @keyframes explode {
           to {
             transform: translate(var(--x), var(--y)) rotate(720deg);
             opacity: 0;
