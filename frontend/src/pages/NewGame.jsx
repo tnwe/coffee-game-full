@@ -1,75 +1,62 @@
 import { useEffect, useRef, useState } from "react";
 
 /* =======================
-   HOOK : RANDOM DRAW
+   RANDOM DRAW HOOK
 ======================= */
 function useRandomDraw(participants, onFinish) {
   const [running, setRunning] = useState(false);
   const [currentName, setCurrentName] = useState("???");
-  const [winner, setWinner] = useState(null);
-  const speedRef = useRef(60);
   const timerRef = useRef(null);
+  const speedRef = useRef(60);
   const indexRef = useRef(0);
+
+  function tick() {
+    indexRef.current =
+      (indexRef.current + 1) % participants.length;
+    setCurrentName(participants[indexRef.current].name);
+  }
 
   function start() {
     if (!participants.length) return;
 
-    setWinner(null);
-    setRunning(true);
+    clearTimeout(timerRef.current);
     speedRef.current = 60;
-    indexRef.current = 0;
+    setRunning(true);
 
-    roll();
-  }
+    const loop = () => {
+      tick();
+      timerRef.current = setTimeout(loop, speedRef.current);
+    };
 
-  function roll() {
-    timerRef.current = setTimeout(() => {
-      indexRef.current =
-        (indexRef.current + 1) % participants.length;
-      setCurrentName(participants[indexRef.current].name);
-
-      if (running) {
-        roll();
-      }
-    }, speedRef.current);
+    loop();
   }
 
   function stop() {
-    if (!running) return;
     setRunning(false);
 
-    // décélération réaliste
     const slowDown = () => {
       speedRef.current += 40;
+      tick();
 
       if (speedRef.current < 400) {
-        timerRef.current = setTimeout(() => {
-          indexRef.current =
-            (indexRef.current + 1) % participants.length;
-          setCurrentName(participants[indexRef.current].name);
-          slowDown();
-        }, speedRef.current);
+        timerRef.current = setTimeout(
+          slowDown,
+          speedRef.current
+        );
       } else {
-        const final =
+        const winner =
           participants[
             Math.floor(Math.random() * participants.length)
           ];
-        setCurrentName(final.name);
-        setWinner(final);
-        onFinish(final);
+        setCurrentName(winner.name);
+        onFinish(winner);
       }
     };
 
     slowDown();
   }
 
-  return {
-    running,
-    currentName,
-    winner,
-    start,
-    stop,
-  };
+  return { running, currentName, start, stop };
 }
 
 /* =======================
@@ -82,13 +69,11 @@ export default function NewGame() {
     new Date().toISOString().slice(0, 10)
   );
 
-  const [mode, setMode] = useState("draw"); // draw | manual
   const [payer, setPayer] = useState(null);
   const [fetcher, setFetcher] = useState(null);
-  const [step, setStep] = useState("payer"); // payer | fetcher | done
+  const [step, setStep] = useState("payer"); // payer → fetcher → done
   const [error, setError] = useState(null);
 
-  /* ===== LOAD PLAYERS ===== */
   useEffect(() => {
     fetch("/api/players/")
       .then((r) => r.json())
@@ -97,33 +82,20 @@ export default function NewGame() {
 
   const participants = players.filter((p) => played[p.id]);
 
-  /* ===== DRAW HOOK ===== */
   const draw = useRandomDraw(participants, (winner) => {
     if (step === "payer") {
       setPayer(winner.id);
-      setTimeout(() => setStep("fetcher"), 800);
+      setTimeout(() => setStep("fetcher"), 600);
     } else {
       setFetcher(winner.id);
       setStep("done");
     }
   });
 
-  /* ===== STATS LIVE ===== */
-  const statsLive = {
-    participants: participants.length,
-    payeur: payer
-      ? players.find((p) => p.id === payer)?.name
-      : "-",
-    fetcher: fetcher
-      ? players.find((p) => p.id === fetcher)?.name
-      : "-",
-  };
-
-  /* ===== SUBMIT ===== */
   async function submit(e) {
     e.preventDefault();
 
-    if (mode === "draw" && step !== "done") {
+    if (step !== "done") {
       setError("Tirage incomplet");
       return;
     }
@@ -156,24 +128,10 @@ export default function NewGame() {
         Nouvelle partie
       </h2>
 
-      {/* MODE */}
-      <div className="flex gap-4 mb-4">
-        {["draw", "manual"].map((m) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={`px-4 py-2 rounded ${
-              mode === m
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200"
-            }`}
-          >
-            {m === "draw" ? "🎲 Tirage" : "✍️ Manuel"}
-          </button>
-        ))}
-      </div>
-
-      <form onSubmit={submit} className="bg-white p-4 rounded shadow">
+      <form
+        onSubmit={submit}
+        className="bg-white p-4 rounded shadow"
+      >
         {error && (
           <div className="bg-red-100 p-2 mb-3 rounded">
             {error}
@@ -181,7 +139,7 @@ export default function NewGame() {
         )}
 
         {/* DATE */}
-        <label className="block mb-3">
+        <label className="block mb-4">
           Date
           <input
             type="date"
@@ -192,13 +150,11 @@ export default function NewGame() {
         </label>
 
         {/* TABLE */}
-        <table className="w-full mb-4 text-center">
+        <table className="w-full mb-6 text-center">
           <thead>
             <tr className="bg-gray-100 text-lg">
               <th className="p-2">Joueur</th>
               <th className="p-2">Joue</th>
-              <th className="p-2">Payeur</th>
-              <th className="p-2">Cherche</th>
             </tr>
           </thead>
           <tbody>
@@ -206,8 +162,8 @@ export default function NewGame() {
               <tr
                 key={p.id}
                 className={`border-b ${
-                  draw.winner?.id === p.id
-                    ? "bg-blue-100 animate-pulse"
+                  draw.currentName === p.name
+                    ? "bg-blue-100"
                     : ""
                 }`}
               >
@@ -224,84 +180,59 @@ export default function NewGame() {
                     }
                   />
                 </td>
-                <td>
-                  <input
-                    type="radio"
-                    disabled={!played[p.id]}
-                    checked={payer === p.id}
-                    onChange={() => setPayer(p.id)}
-                  />
-                </td>
-                <td>
-                  <input
-                    type="radio"
-                    disabled={!played[p.id]}
-                    checked={fetcher === p.id}
-                    onChange={() => setFetcher(p.id)}
-                  />
-                </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* DRAW MODE */}
-        {mode === "draw" && (
-          <div className="mb-4 text-center">
-            <div className="text-3xl font-bold h-12">
+        {/* PAYEUR BLOQUÉ APRÈS 1ER TIRAGE */}
+        <div className="bg-green-50 p-3 rounded mb-4 flex justify-between">
+          <span>
+            💳 Qui paye le café :{" "}
+            {payer
+              ? players.find((p) => p.id === payer)?.name
+              : "???"}
+          </span>
+          {payer && <span>✔️</span>}
+        </div>
+
+        {/* FETCHER */}
+        <div className="bg-blue-50 p-3 rounded mb-4 flex justify-between">
+          <span>
+            🚶 Qui va chercher le café :{" "}
+            {fetcher
+              ? players.find((p) => p.id === fetcher)?.name
+              : "???"}
+          </span>
+          {fetcher && <span>✔️</span>}
+        </div>
+
+        {/* DRAW */}
+        {step !== "done" && (
+          <div className="text-center mb-4">
+            <div className="text-3xl font-bold h-12 mb-2">
               {draw.currentName}
             </div>
 
-            {/* STATS LIVE */}
-            <div className="text-sm text-gray-500 mt-2">
-              Participants : {statsLive.participants}
-            </div>
-
-            {step !== "done" && (
-              <button
-                type="button"
-                onClick={draw.running ? draw.stop : draw.start}
-                className={`mt-4 px-6 py-3 rounded text-white ${
-                  draw.running
-                    ? "bg-red-600"
-                    : "bg-green-600"
-                }`}
-              >
-                {draw.running ? "🛑 Stop" : "▶️ Lancer"}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* RESULT */}
-        {step === "done" && (
-          <div className="bg-blue-50 p-4 rounded mb-4">
-            <div className="flex justify-between">
-              <span>
-                💳 Qui paye :{" "}
-                {
-                  players.find((p) => p.id === payer)
-                    ?.name
-                }
-              </span>
-              <span>✔️</span>
-            </div>
-            <div className="flex justify-between mt-2">
-              <span>
-                🚶 Qui va chercher :{" "}
-                {
-                  players.find((p) => p.id === fetcher)
-                    ?.name
-                }
-              </span>
-              <span>✔️</span>
-            </div>
+            <button
+              type="button"
+              onClick={
+                draw.running ? draw.stop : draw.start
+              }
+              className={`px-6 py-3 rounded text-white ${
+                draw.running
+                  ? "bg-red-600"
+                  : "bg-green-600"
+              }`}
+            >
+              {draw.running ? "🛑 Stop" : "▶️ Lancer"}
+            </button>
           </div>
         )}
 
         <button
           type="submit"
-          disabled={mode === "draw" && step !== "done"}
+          disabled={step !== "done"}
           className="bg-coffee text-white px-4 py-2 rounded disabled:opacity-50"
         >
           Enregistrer
