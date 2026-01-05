@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 /* =======================
-   DRAW ENGINE
+   DRAW HOOK
 ======================= */
 function useDraw(participants, onFinish) {
   const [running, setRunning] = useState(false);
@@ -26,7 +26,6 @@ function useDraw(participants, onFinish) {
 
   function start() {
     if (!participants.length) return;
-
     clear();
     setRunning(true);
     speed.current = 60;
@@ -35,7 +34,6 @@ function useDraw(participants, onFinish) {
       tick();
       timer.current = setTimeout(loop, speed.current);
     };
-
     loop();
   }
 
@@ -45,9 +43,8 @@ function useDraw(participants, onFinish) {
 
     const slowDown = () => {
       tick();
-      speed.current += 50;
-
-      if (speed.current < 450) {
+      speed.current += 40;
+      if (speed.current < 420) {
         timer.current = setTimeout(slowDown, speed.current);
       } else {
         clear();
@@ -57,14 +54,13 @@ function useDraw(participants, onFinish) {
         onFinish(winner);
       }
     };
-
     slowDown();
   }
 
   function reset() {
     clear();
-    setName("???");
     setRunning(false);
+    setName("???");
   }
 
   return { name, running, start, stop, reset };
@@ -75,7 +71,6 @@ function useDraw(participants, onFinish) {
 ======================= */
 export default function NewGame() {
   const [players, setPlayers] = useState([]);
-  const [games, setGames] = useState([]);
   const [played, setPlayed] = useState({});
   const [payer, setPayer] = useState(null);
   const [fetcher, setFetcher] = useState(null);
@@ -87,15 +82,19 @@ export default function NewGame() {
   const [step, setStep] = useState("payer"); // payer | fetcher | done
   const [error, setError] = useState(null);
 
+  // ajout joueur
+  const [newPlayer, setNewPlayer] = useState("");
+  const [adding, setAdding] = useState(false);
+
   useEffect(() => {
+    loadPlayers();
+  }, []);
+
+  function loadPlayers() {
     fetch("/api/players/")
       .then((r) => r.json())
       .then(setPlayers);
-
-    fetch("/api/games/")
-      .then((r) => r.json())
-      .then(setGames);
-  }, []);
+  }
 
   const participants = players.filter((p) => played[p.id]);
 
@@ -105,7 +104,7 @@ export default function NewGame() {
       setTimeout(() => {
         draw.reset();
         setStep("fetcher");
-      }, 3000);
+      }, 2500);
     } else {
       setFetcher(winner.id);
       setStep("done");
@@ -122,7 +121,7 @@ export default function NewGame() {
     }
 
     if (!payer || !fetcher) {
-      setError("Tirages incomplets.");
+      setError("Résultats incomplets.");
       return;
     }
 
@@ -146,7 +145,28 @@ export default function NewGame() {
       setFetcher(null);
       setStep("payer");
       draw.reset();
+    } else {
+      setError("Erreur lors de l'enregistrement");
     }
+  }
+
+  async function addPlayer() {
+    if (!newPlayer.trim()) return;
+
+    setAdding(true);
+    const res = await fetch(
+      `/api/players/?name=${encodeURIComponent(newPlayer)}`,
+      { method: "POST" }
+    );
+
+    if (res.ok) {
+      setNewPlayer("");
+      loadPlayers();
+    } else {
+      const err = await res.json();
+      alert(err.detail || "Erreur ajout joueur");
+    }
+    setAdding(false);
   }
 
   return (
@@ -160,7 +180,7 @@ export default function NewGame() {
         className="bg-white p-4 rounded shadow"
       >
         {error && (
-          <div className="bg-red-100 p-2 mb-3 rounded">
+          <div className="bg-red-100 p-2 mb-3 rounded text-red-700">
             {error}
           </div>
         )}
@@ -208,30 +228,62 @@ export default function NewGame() {
             <tr className="bg-gray-100 text-lg">
               <th className="p-2">Joueur</th>
               <th className="p-2">Joue</th>
+              {mode === "manual" && (
+                <>
+                  <th className="p-2">Paye</th>
+                  <th className="p-2">Cherche</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
-            {players.map((p) => (
-              <tr key={p.id} className="border-b">
-                <td className="p-2">{p.name}</td>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={!!played[p.id]}
-                    onChange={() =>
-                      setPlayed((v) => ({
-                        ...v,
-                        [p.id]: !v[p.id],
-                      }))
-                    }
-                  />
-                </td>
-              </tr>
-            ))}
+            {players.map((p) => {
+              const hasPlayed = !!played[p.id];
+              return (
+                <tr key={p.id} className="border-b">
+                  <td className="p-2">{p.name}</td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={hasPlayed}
+                      onChange={() =>
+                        setPlayed((v) => ({
+                          ...v,
+                          [p.id]: !v[p.id],
+                        }))
+                      }
+                    />
+                  </td>
+
+                  {mode === "manual" && (
+                    <>
+                      <td>
+                        <input
+                          type="radio"
+                          name="payer"
+                          disabled={!hasPlayed}
+                          checked={payer === p.id}
+                          onChange={() => setPayer(p.id)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="radio"
+                          name="fetcher"
+                          disabled={!hasPlayed}
+                          checked={fetcher === p.id}
+                          onChange={() => setFetcher(p.id)}
+                        />
+                      </td>
+                    </>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
-        {/* ===== TIRAGE UI ===== */}
+        {/* ===== TIRAGE ===== */}
         {mode === "draw" && (
           <div className="bg-gray-50 p-4 rounded mb-4 text-center">
             <h3 className="font-semibold text-lg mb-2">
@@ -297,6 +349,24 @@ export default function NewGame() {
           Enregistrer
         </button>
       </form>
+
+      {/* ===== AJOUT JOUEUR ===== */}
+      <div className="bg-white p-4 rounded shadow mt-6 flex gap-3">
+        <input
+          className="border p-2 flex-1"
+          placeholder="Nouveau joueur"
+          value={newPlayer}
+          onChange={(e) => setNewPlayer(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={addPlayer}
+          disabled={adding}
+          className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
+        >
+          Ajouter
+        </button>
+      </div>
     </div>
   );
 }
