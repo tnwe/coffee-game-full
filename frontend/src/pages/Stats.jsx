@@ -41,10 +41,6 @@ export default function Stats() {
   const fetchMap = Object.fromEntries(stats.fetchers);
   const partMap = Object.fromEntries(stats.participations);
 
-  const nameById = Object.fromEntries(
-    stats.players?.map((p) => [p.id, p.name]) || []
-  );
-
   const playerNames = Array.from(
     new Set([
       ...stats.participations.map((p) => p[0]),
@@ -85,7 +81,7 @@ export default function Stats() {
 
   return (
     <div className="max-w-6xl mx-auto p-3 sm:p-4">
-      <h2 className="text-lg font-semibold mb-4 sm:mb-6">
+      <h2 className="text-lg font-semibold mb-6">
         Statistiques
       </h2>
 
@@ -95,16 +91,24 @@ export default function Stats() {
           <div className="text-gray-500 text-sm">
             Parties enregistrées
           </div>
-          <div className="text-2xl font-bold">{totalGames}</div>
+          <div className="text-2xl font-bold">
+            {totalGames}
+          </div>
         </div>
 
         <div className="bg-white p-4 rounded shadow">
-          <div className="text-gray-500 text-sm">Cafés bus</div>
-          <div className="text-2xl font-bold">{coffeesDrunk}</div>
+          <div className="text-gray-500 text-sm">
+            Cafés bus
+          </div>
+          <div className="text-2xl font-bold">
+            {coffeesDrunk}
+          </div>
         </div>
 
         <div className="bg-white p-4 rounded shadow">
-          <div className="text-gray-500 text-sm mb-2">Podium</div>
+          <div className="text-gray-500 text-sm mb-2">
+            Podium
+          </div>
           {podium.map((p, i) => (
             <div
               key={p.name}
@@ -140,35 +144,29 @@ export default function Stats() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-gray-500 text-sm">Parties</div>
-              <div className="text-xl font-bold">
-                {selectedStats.participations}
+            {[
+              ["Parties", selectedStats.participations],
+              ["Payé", selectedStats.payé],
+              ["Cherché", selectedStats.cherché],
+              ["Score", selectedStats.score],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="bg-white p-3 rounded shadow-sm"
+              >
+                <div className="text-gray-500 text-sm">
+                  {label}
+                </div>
+                <div className="text-xl font-bold">
+                  {value}
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-gray-500 text-sm">Payé</div>
-              <div className="text-xl font-bold">
-                {selectedStats.payé}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-500 text-sm">Cherché</div>
-              <div className="text-xl font-bold">
-                {selectedStats.cherché}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-500 text-sm">Score</div>
-              <div className="text-xl font-bold">
-                {selectedStats.score}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* ===== GRAPHE PARTIES / PAYÉ / CHERCHÉ ===== */}
+      {/* ===== GRAPHE ===== */}
       <div className="bg-white p-4 rounded shadow mb-8">
         <h3 className="font-semibold mb-4">
           Répartition des parties par joueur
@@ -218,43 +216,55 @@ export default function Stats() {
         </h3>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[500px] w-full text-sm">
+          <table className="min-w-[600px] w-full text-sm">
             <thead>
               <tr className="bg-gray-100">
                 <th className="p-2 text-left">Date</th>
-                <th className="p-2">Participants</th>
-                <th className="p-2">Payé</th>
-                <th className="p-2">Cherché</th>
+                <th className="p-2 text-left">Participants</th>
+                <th className="p-2 text-center">Payé</th>
+                <th className="p-2 text-center">Cherché</th>
               </tr>
             </thead>
             <tbody>
               {games.map((g) => {
-                const payerName = g.payer
-                  ? nameById[g.payer]
-                  : null;
-                const fetcherName = g.fetcher
-                  ? nameById[g.fetcher]
-                  : null;
-
                 const isDoublette =
-                  g.payer && g.fetcher && g.payer === g.fetcher;
+                  g.payer?.id &&
+                  g.fetcher?.id &&
+                  g.payer.id === g.fetcher.id;
+
+                const isHighlighted =
+                  selectedPlayer &&
+                  g.players?.some(
+                    (p) => p.name === selectedPlayer
+                  );
 
                 return (
                   <tr
                     key={g.id}
                     className={`border-b ${
                       isDoublette ? "bg-yellow-50" : ""
+                    } ${
+                      selectedPlayer
+                        ? isHighlighted
+                          ? "bg-blue-100"
+                          : "opacity-40"
+                        : ""
                     }`}
                   >
                     <td className="p-2">{g.date}</td>
-                    <td className="p-2 text-center">
-                      {g.players?.length || 0}
+
+                    <td className="p-2">
+                      {g.players
+                        ?.map((p) => p.name)
+                        .join(", ") || "-"}
                     </td>
+
                     <td className="p-2 text-center">
-                      {payerName || "-"}
+                      {g.payer?.name || "-"}
                     </td>
+
                     <td className="p-2 text-center">
-                      {fetcherName || "-"}
+                      {g.fetcher?.name || "-"}
                       {isDoublette && (
                         <span className="ml-2 text-xs bg-yellow-300 px-2 py-0.5 rounded">
                           Doublette
