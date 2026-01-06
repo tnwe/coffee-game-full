@@ -12,7 +12,7 @@ import {
 export default function Stats() {
   const [stats, setStats] = useState(null);
   const [games, setGames] = useState([]);
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [players, setPlayers] = useState([]);
 
   useEffect(() => {
     fetch("/api/stats/")
@@ -22,28 +22,25 @@ export default function Stats() {
     fetch("/api/games/")
       .then((r) => r.json())
       .then(setGames);
+
+    fetch("/api/players/")
+      .then((r) => r.json())
+      .then(setPlayers);
   }, []);
 
   if (!stats) return <div className="p-4">Chargement…</div>;
 
   /* =======================
-     MAP ID → NAME
+     MAP ID → NAME (SAFE)
   ======================= */
 
   const idToName = useMemo(() => {
     const map = {};
-    [
-      ...stats.participations,
-      ...stats.payers,
-      ...stats.fetchers,
-    ].forEach(([name, _count, id]) => {
-      // fallback si backend ne renvoie pas l'id
-      if (typeof id === "number") {
-        map[id] = name;
-      }
+    players.forEach((p) => {
+      map[p.id] = p.name;
     });
     return map;
-  }, [stats]);
+  }, [players]);
 
   const resolveName = (v) => {
     if (!v) return "-";
@@ -85,7 +82,6 @@ export default function Stats() {
       joué: Math.max(participations - paid - fetched, 0),
       payé: paid,
       cherché: fetched,
-      participations,
       score: paid + fetched,
     };
   });
