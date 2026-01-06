@@ -17,21 +17,30 @@ export default function Stats() {
   useEffect(() => {
     fetch("/api/stats/")
       .then((r) => r.json())
-      .then(setStats);
+      .then(setStats)
+      .catch(() => setStats(null));
 
     fetch("/api/games/")
       .then((r) => r.json())
-      .then(setGames);
+      .then(setGames)
+      .catch(() => setGames([]));
 
     fetch("/api/players/")
       .then((r) => r.json())
-      .then(setPlayers);
+      .then(setPlayers)
+      .catch(() => setPlayers([]));
   }, []);
 
   if (!stats) return <div className="p-4">Chargement…</div>;
 
   /* =======================
-     MAP ID → NAME (SAFE)
+     HELPERS
+  ======================= */
+
+  const safeArray = (v) => (Array.isArray(v) ? v : []);
+
+  /* =======================
+     MAP ID → NAME
   ======================= */
 
   const idToName = useMemo(() => {
@@ -44,7 +53,7 @@ export default function Stats() {
 
   const resolveName = (v) => {
     if (!v) return "-";
-    if (typeof v === "object") return v.name;
+    if (typeof v === "object" && v.name) return v.name;
     if (typeof v === "number") return idToName[v] || `#${v}`;
     return String(v);
   };
@@ -53,22 +62,26 @@ export default function Stats() {
      CALCULS
   ======================= */
 
-  const totalGames = stats.total_games;
+  const participationsArr = safeArray(stats.participations);
+  const payersArr = safeArray(stats.payers);
+  const fetchersArr = safeArray(stats.fetchers);
 
-  const coffeesDrunk = stats.participations.reduce(
+  const totalGames = stats.total_games || 0;
+
+  const coffeesDrunk = participationsArr.reduce(
     (sum, [, count]) => sum + count,
     0
   );
 
-  const payMap = Object.fromEntries(stats.payers);
-  const fetchMap = Object.fromEntries(stats.fetchers);
-  const partMap = Object.fromEntries(stats.participations);
+  const payMap = Object.fromEntries(payersArr);
+  const fetchMap = Object.fromEntries(fetchersArr);
+  const partMap = Object.fromEntries(participationsArr);
 
   const playerNames = Array.from(
     new Set([
-      ...stats.participations.map((p) => p[0]),
-      ...stats.payers.map((p) => p[0]),
-      ...stats.fetchers.map((f) => f[0]),
+      ...participationsArr.map((p) => p[0]),
+      ...payersArr.map((p) => p[0]),
+      ...fetchersArr.map((f) => f[0]),
     ])
   );
 
