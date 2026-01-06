@@ -165,39 +165,48 @@ export default function Stats() {
               <th className="p-2 text-center">Cherché</th>
             </tr>
           </thead>
-          <tbody>
-            {games.map((g) => {
-              const participants = Array.isArray(g.players)
-                ? g.players.map(resolveName).join(", ")
-                : "-";
+<tbody>
+  {games.map((g) => {
+    const participants =
+      Array.isArray(g.participants) && g.participants.length > 0
+        ? g.participants
+            .map((id) => idToName[id] || `#${id}`)
+            .join(", ")
+        : "-";
 
-              const isDoublette =
-                g.payer && g.fetcher && g.payer === g.fetcher;
+    const isDoublette =
+      g.payer_id && g.fetcher_id && g.payer_id === g.fetcher_id;
 
-              return (
-                <tr
-                  key={g.id}
-                  className={`border-b ${
-                    isDoublette ? "bg-yellow-50" : ""
-                  }`}
-                >
-                  <td className="p-2">{g.date}</td>
-                  <td className="p-2">{participants}</td>
-                  <td className="p-2 text-center">
-                    {resolveName(g.payer)}
-                  </td>
-                  <td className="p-2 text-center">
-                    {resolveName(g.fetcher)}
-                    {isDoublette && (
-                      <span className="ml-2 text-xs bg-yellow-300 px-2 py-0.5 rounded">
-                        Doublette
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
+    return (
+      <tr
+        key={g.id}
+        className={`border-b ${
+          isDoublette ? "bg-yellow-50" : ""
+        }`}
+      >
+        <td className="p-2">{g.date}</td>
+
+        <td className="p-2">
+          {participants}
+        </td>
+
+        <td className="p-2 text-center">
+          {g.payer_name || "-"}
+        </td>
+
+        <td className="p-2 text-center">
+          {g.fetcher_name || "-"}
+          {isDoublette && (
+            <span className="ml-2 text-xs bg-yellow-300 px-2 py-0.5 rounded">
+              Doublette
+            </span>
+          )}
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
+
         </table>
       </div>
     </div>
