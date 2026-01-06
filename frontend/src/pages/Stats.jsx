@@ -143,59 +143,6 @@ export default function Stats() {
         </ResponsiveContainer>
       </div>
 
-      {/* ===== HISTORIQUE ===== */}
-      <div className="bg-white p-4 rounded shadow">
-        <h3 className="font-semibold mb-4">
-          Historique des parties
-        </h3>
-
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 text-left">Date</th>
-              <th className="p-2 text-center">Participants</th>
-              <th className="p-2 text-center">Payé</th>
-              <th className="p-2 text-center">Cherché</th>
-            </tr>
-          </thead>
-          <tbody>
-            {games.map((g) => {
-              const participantCount = Array.isArray(g.players)
-                ? g.players.length
-                : 0;
-
-              const isDoublette =
-                typeof g.payer === "number" &&
-                g.payer === g.fetcher;
-
-              return (
-                <tr
-                  key={g.id}
-                  className={`border-b ${
-                    isDoublette ? "bg-yellow-50" : ""
-                  }`}
-                >
-                  <td className="p-2">{g.date}</td>
-                  <td className="p-2 text-center">
-                    {participantCount}
-                  </td>
-                  <td className="p-2 text-center">
-                    {resolveName(g.payer)}
-                  </td>
-                  <td className="p-2 text-center">
-                    {resolveName(g.fetcher)}
-                    {isDoublette && (
-                      <span className="ml-2 text-xs bg-yellow-300 px-2 py-0.5 rounded">
-                        Doublette
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }
