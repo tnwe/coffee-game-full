@@ -10,6 +10,7 @@ function useDraw(participants, onFinish) {
   const timer = useRef(null);
   const index = useRef(0);
   const speed = useRef(60);
+  const slowing = useRef(false);
 
   function clear() {
     if (timer.current) {
@@ -27,8 +28,9 @@ function useDraw(participants, onFinish) {
   function start() {
     if (!participants.length) return;
     clear();
-    setRunning(true);
+    slowing.current = false;
     speed.current = 60;
+    setRunning(true);
 
     const loop = () => {
       tick();
@@ -38,23 +40,25 @@ function useDraw(participants, onFinish) {
   }
 
   function stop() {
+    if (!running) return;
+    slowing.current = true;
     clear();
-    setRunning(false);
 
-    const slowDown = () => {
+    const slow = () => {
       tick();
       speed.current += 40;
-      if (speed.current < 420) {
-        timer.current = setTimeout(slowDown, speed.current);
+      if (speed.current < 500) {
+        timer.current = setTimeout(slow, speed.current);
       } else {
         clear();
+        setRunning(false);
         const winner =
           participants[Math.floor(Math.random() * participants.length)];
         setName(winner.name);
         onFinish(winner);
       }
     };
-    slowDown();
+    slow();
   }
 
   function reset() {
@@ -72,8 +76,11 @@ function useDraw(participants, onFinish) {
 export default function NewGame() {
   const [players, setPlayers] = useState([]);
   const [played, setPlayed] = useState({});
+  const [immune, setImmune] = useState({});
   const [payer, setPayer] = useState(null);
   const [fetcher, setFetcher] = useState(null);
+  const [payerResults, setPayerResults] = useState([]);
+
   const [date, setDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
@@ -82,7 +89,6 @@ export default function NewGame() {
   const [step, setStep] = useState("payer"); // payer | fetcher | done
   const [error, setError] = useState(null);
 
-  // ajout joueur
   const [newPlayer, setNewPlayer] = useState("");
   const [adding, setAdding] = useState(false);
 
@@ -100,12 +106,25 @@ export default function NewGame() {
 
   const draw = useDraw(participants, (winner) => {
     if (step === "payer") {
-      setPayer(winner.id);
-      setTimeout(() => {
+      const hasImmunity = immune[winner.id];
+
+      setPayerResults((prev) => [
+        ...prev,
+        { id: winner.id, immune: hasImmunity },
+      ]);
+
+      if (hasImmunity) {
+        setImmune({});
         draw.reset();
-        setStep("fetcher");
-      }, 2500);
-    } else {
+        setTimeout(draw.start, 800);
+      } else {
+        setPayer(winner.id);
+        setTimeout(() => {
+          draw.reset();
+          setStep("fetcher");
+        }, 1500);
+      }
+    } else if (step === "fetcher") {
       setFetcher(winner.id);
       setStep("done");
     }
@@ -121,7 +140,7 @@ export default function NewGame() {
     }
 
     if (!payer || !fetcher) {
-      setError("Résultats incomplets.");
+      setError("Tirage incomplet.");
       return;
     }
 
@@ -141,8 +160,10 @@ export default function NewGame() {
     if (res.ok) {
       alert("Partie enregistrée");
       setPlayed({});
+      setImmune({});
       setPayer(null);
       setFetcher(null);
+      setPayerResults([]);
       setStep("payer");
       draw.reset();
     } else {
@@ -152,8 +173,8 @@ export default function NewGame() {
 
   async function addPlayer() {
     if (!newPlayer.trim()) return;
-
     setAdding(true);
+
     const res = await fetch(
       `/api/players/?name=${encodeURIComponent(newPlayer)}`,
       { method: "POST" }
@@ -163,22 +184,16 @@ export default function NewGame() {
       setNewPlayer("");
       loadPlayers();
     } else {
-      const err = await res.json();
-      alert(err.detail || "Erreur ajout joueur");
+      alert("Erreur ajout joueur");
     }
     setAdding(false);
   }
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <h2 className="text-lg font-semibold mb-4">
-        Nouvelle partie
-      </h2>
+      <h2 className="text-lg font-semibold mb-4">Nouvelle partie</h2>
 
-      <form
-        onSubmit={submit}
-        className="bg-white p-4 rounded shadow"
-      >
+      <form onSubmit={submit} className="bg-white p-4 rounded shadow">
         {error && (
           <div className="bg-red-100 p-2 mb-3 rounded text-red-700">
             {error}
@@ -223,15 +238,16 @@ export default function NewGame() {
         </label>
 
         {/* TABLE JOUEURS */}
-        <table className="w-full mb-6 text-center">
+        <table className="w-full mb-6 text-center table-fixed">
           <thead>
             <tr className="bg-gray-100 text-lg">
-              <th className="p-2">Joueur</th>
-              <th className="p-2">Joue</th>
+              <th>Joueur</th>
+              <th>Joue</th>
+              {mode === "draw" && <th>Immunité</th>}
               {mode === "manual" && (
                 <>
-                  <th className="p-2">Paye</th>
-                  <th className="p-2">Cherche</th>
+                  <th>Paye</th>
+                  <th>Cherche</th>
                 </>
               )}
             </tr>
@@ -239,8 +255,16 @@ export default function NewGame() {
           <tbody>
             {players.map((p) => {
               const hasPlayed = !!played[p.id];
+              const isSelected =
+                p.id === payer || p.id === fetcher;
+
               return (
-                <tr key={p.id} className="border-b">
+                <tr
+                  key={p.id}
+                  className={`border-b ${
+                    isSelected ? "bg-blue-100" : ""
+                  }`}
+                >
                   <td className="p-2">{p.name}</td>
                   <td>
                     <input
@@ -254,6 +278,22 @@ export default function NewGame() {
                       }
                     />
                   </td>
+
+                  {mode === "draw" && (
+                    <td>
+                      <input
+                        type="checkbox"
+                        disabled={!hasPlayed}
+                        checked={!!immune[p.id]}
+                        onChange={() =>
+                          setImmune((v) => ({
+                            ...v,
+                            [p.id]: !v[p.id],
+                          }))
+                        }
+                      />
+                    </td>
+                  )}
 
                   {mode === "manual" && (
                     <>
@@ -285,14 +325,16 @@ export default function NewGame() {
 
         {/* ===== TIRAGE ===== */}
         {mode === "draw" && (
-          <div className="bg-gray-50 p-4 rounded mb-4 text-center">
+          <div className="bg-gray-50 p-4 rounded text-center">
             <h3 className="font-semibold text-lg mb-2">
               {step === "payer"
-                ? "Qui paye le café ?"
-                : "Qui va chercher le café ?"}
+                ? "💳 Qui paye le café ?"
+                : step === "fetcher"
+                ? "🚶 Qui va chercher le café ?"
+                : ""}
             </h3>
 
-            <div className="text-3xl font-bold h-12 mb-3">
+            <div className="text-4xl font-bold h-14 mb-3">
               {draw.name}
             </div>
 
@@ -312,19 +354,24 @@ export default function NewGame() {
               </button>
             )}
 
-            <div className="mt-4 text-left">
-              {payer && (
-                <div className="bg-blue-100 p-2 rounded mb-2">
-                  💳 Qui paye :{" "}
+            <div className="mt-4 space-y-2 text-left">
+              {payerResults.map((r, i) => (
+                <div
+                  key={i}
+                  className="bg-blue-100 p-2 rounded"
+                >
+                  💳 Résultat {i + 1} :{" "}
                   <strong>
                     {
-                      players.find((p) => p.id === payer)
-                        ?.name
+                      players.find(
+                        (p) => p.id === r.id
+                      )?.name
                     }
                   </strong>{" "}
-                  ✅
+                  {r.immune && "🛡️"}
                 </div>
-              )}
+              ))}
+
               {fetcher && (
                 <div className="bg-green-100 p-2 rounded">
                   🚶 Qui va chercher :{" "}
@@ -344,13 +391,13 @@ export default function NewGame() {
 
         <button
           type="submit"
-          className="bg-coffee text-white px-4 py-2 rounded"
+          className="bg-coffee text-white px-4 py-2 rounded mt-4"
         >
           Enregistrer
         </button>
       </form>
 
-      {/* ===== AJOUT JOUEUR ===== */}
+      {/* AJOUT JOUEUR */}
       <div className="bg-white p-4 rounded shadow mt-6 flex gap-3">
         <input
           className="border p-2 flex-1"
@@ -362,7 +409,7 @@ export default function NewGame() {
           type="button"
           onClick={addPlayer}
           disabled={adding}
-          className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          className="bg-green-600 text-white px-4 py-2 rounded"
         >
           Ajouter
         </button>
