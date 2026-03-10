@@ -149,6 +149,18 @@ export default function Stats() {
       </ResponsiveContainer>
     </div>
   );
+    if (b.scoreNorme !== a.scoreNorme) {
+      return b.scoreNorme - a.scoreNorme;
+    }
+    if (b.participations !== a.participations) {
+      return b.participations - a.participations;
+    }
+    return a.name.localeCompare(b.name);
+    });
+
+  /* =======================
+     RENDER
+  ======================= */
 
   return (
     <div className="max-w-6xl mx-auto p-4">
@@ -209,6 +221,86 @@ export default function Stats() {
         {chartSection}
       </div>
 
+      {/* ===== SCORES NORMÉS ===== */}
+      <div className="bg-white p-4 rounded shadow mb-8">
+        <h3 className="font-semibold mb-4">
+          Score normé par nombre de parties jouées
+        </h3>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="p-2 text-left">Participant</th>
+              <th className="p-2 text-center">Parties jouées</th>
+              <th className="p-2 text-center">Score brut</th>
+              <th className="p-2 text-center">Score normé</th>
+            </tr>
+          </thead>
+          <tbody>
+            {normalizedRanking.map((player) => (
+              <tr key={player.name} className="border-b">
+                <td className="p-2">{player.name}</td>
+                <td className="p-2 text-center">{player.participations}</td>
+                <td className="p-2 text-center">{player.score}</td>
+                <td className="p-2 text-center font-semibold">
+                  {player.scoreNorme.toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ===== GRAPHE ===== */}
+      <div className="bg-white p-4 rounded shadow mb-8">
+        <h3 className="font-semibold mb-4">
+          Répartition des parties par joueur
+        </h3>
+
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={scoreData}>
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="joué" stackId="a" fill="#e5e7eb" />
+            <Bar dataKey="payé" stackId="a" fill="#8b5cf6" />
+            <Bar dataKey="cherché" stackId="a" fill="#22c55e" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ===== SCORES NORMÉS ===== */}
+      <div className="bg-white p-4 rounded shadow mb-8">
+        <h3 className="font-semibold mb-4">
+          Score normé par nombre de parties jouées
+        </h3>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="p-2 text-left">Participant</th>
+              <th className="p-2 text-center">Parties jouées</th>
+              <th className="p-2 text-center">Score brut</th>
+              <th className="p-2 text-center">Score normé</th>
+            </tr>
+          </thead>
+          <tbody>
+            {normalizedRanking.map((player) => (
+              <tr key={player.name} className="border-b">
+                <td className="p-2">{player.name}</td>
+                <td className="p-2 text-center">{player.participations}</td>
+                <td className="p-2 text-center">{player.score}</td>
+                <td className="p-2 text-center font-semibold">
+                  {player.scoreNorme.toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ===== HISTORIQUE ===== */}
       <div className="bg-white p-4 rounded shadow">
         <h3 className="font-semibold mb-4">Historique des parties</h3>
 
