@@ -13,7 +13,6 @@ export default function Stats() {
   const [stats, setStats] = useState(null);
   const [games, setGames] = useState([]);
   const [players, setPlayers] = useState([]);
-  const [mobileView, setMobileView] = useState("ranking");
 
   useEffect(() => {
     fetch("/api/stats/")
@@ -36,10 +35,25 @@ export default function Stats() {
     return <div className="p-4">Chargement…</div>;
   }
 
+  /* =======================
+     HELPERS
+  ======================= */
+
   const idToName = {};
   players.forEach((p) => {
     idToName[p.id] = p.name;
   });
+
+  const resolveName = (v) => {
+    if (!v) return "-";
+    if (typeof v === "object" && v.name) return v.name;
+    if (typeof v === "number") return idToName[v] || `#${v}`;
+    return String(v);
+  };
+
+  /* =======================
+     STATS CALCULATIONS
+  ======================= */
 
   const totalGames = stats.total_games;
 
@@ -51,7 +65,6 @@ export default function Stats() {
   const payMap = Object.fromEntries(stats.payers);
   const fetchMap = Object.fromEntries(stats.fetchers);
   const partMap = Object.fromEntries(stats.participations);
-  const doubletteMap = Object.fromEntries(stats.doublettes_by_player || []);
 
   const playerNames = Array.from(
     new Set([
@@ -66,7 +79,6 @@ export default function Stats() {
     const paid = payMap[name] || 0;
     const fetched = fetchMap[name] || 0;
     const score = paid + fetched;
-    const doublettes = doubletteMap[name] || 0;
     const normalizedScore = participations > 0 ? score / participations : 0;
 
     return {
@@ -76,79 +88,40 @@ export default function Stats() {
       cherché: fetched,
       participations,
       score,
-      doublettes,
       scoreNorme: normalizedScore,
     };
   });
 
-  const normalizedRanking = scoreData
-    .filter((player) => player.participations > 0)
+
+  const paidCoffeesMap = {};
+  games.forEach((g) => {
+    const participantCount = Array.isArray(g.participants)
+      ? g.participants.length
+      : 0;
+    const payerName = g.payer_name || resolveName(g.payer_id);
+
+    if (!payerName || payerName === "-" || participantCount === 0) {
+      return;
+    }
+
+    paidCoffeesMap[payerName] = (paidCoffeesMap[payerName] || 0) + participantCount;
+  });
+
+  const podiumData = playerNames
+    .map((name) => ({
+      name,
+      cafesPayes: paidCoffeesMap[name] || 0,
+    }))
     .sort((a, b) => {
-      if (b.scoreNorme !== a.scoreNorme) {
-        return b.scoreNorme - a.scoreNorme;
-      }
-      if (b.participations !== a.participations) {
-        return b.participations - a.participations;
+      if (b.cafesPayes !== a.cafesPayes) {
+        return b.cafesPayes - a.cafesPayes;
       }
       return a.name.localeCompare(b.name);
     });
 
-  const rankingSection = (
-    <div className="bg-white p-4 rounded shadow mb-8">
-      <h3 className="font-semibold mb-4">Score normé par nombre de parties jouées</h3>
-
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="p-2 text-left">Participant</th>
-            <th className="p-2 text-center">Parties jouées</th>
-            <th className="p-2 text-center">Score brut</th>
-            <th className="p-2 text-center">Score normé</th>
-            <th className="p-2 text-center">Doublettes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {normalizedRanking.map((player) => (
-            <tr key={player.name} className="border-b">
-              <td className="p-2">{player.name}</td>
-              <td className="p-2 text-center">{player.participations}</td>
-              <td className="p-2 text-center">{player.score}</td>
-              <td className="p-2 text-center font-semibold">{player.scoreNorme.toFixed(2)}</td>
-              <td className="p-2 text-center">
-                <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-                    player.doublettes > 0
-                      ? "bg-yellow-200 text-yellow-900"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {player.doublettes}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const chartSection = (
-    <div className="bg-white p-4 rounded shadow mb-8">
-      <h3 className="font-semibold mb-4">Répartition des parties par joueur</h3>
-
-      <ResponsiveContainer width="100%" height={340}>
-        <BarChart data={scoreData} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-          <XAxis type="number" />
-          <YAxis type="category" dataKey="name" width={90} />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="joué" stackId="a" fill="#e5e7eb" />
-          <Bar dataKey="payé" stackId="a" fill="#8b5cf6" />
-          <Bar dataKey="cherché" stackId="a" fill="#22c55e" />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  const normalizedRanking = scoreData
+    .filter((player) => player.participations > 0)
+    .sort((a, b) => {
     if (b.scoreNorme !== a.scoreNorme) {
       return b.scoreNorme - a.scoreNorme;
     }
@@ -166,59 +139,37 @@ export default function Stats() {
     <div className="max-w-6xl mx-auto p-4">
       <h2 className="text-lg font-semibold mb-6">Statistiques</h2>
 
+      {/* ===== RÉSUMÉ ===== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-white p-4 rounded shadow">
-          <div className="text-gray-500 text-sm">Parties enregistrées</div>
+          <div className="text-gray-500 text-sm">
+            Parties enregistrées
+          </div>
           <div className="text-2xl font-bold">{totalGames}</div>
         </div>
 
         <div className="bg-white p-4 rounded shadow">
-          <div className="text-gray-500 text-sm">Cafés bus</div>
+          <div className="text-gray-500 text-sm">
+            Cafés bus
+          </div>
           <div className="text-2xl font-bold">{coffeesDrunk}</div>
         </div>
 
         <div className="bg-white p-4 rounded shadow">
-          <div className="text-gray-500 text-sm mb-2">Podium</div>
-          {[...scoreData]
-            .sort((a, b) => b.score - a.score)
+          <div className="text-gray-500 text-sm mb-2">
+            Podium : nombre de cafés payés
+          </div>
+          {podiumData
             .slice(0, 3)
             .map((p, i) => (
               <div key={p.name} className="flex justify-between">
                 <span>
                   {i + 1}. {p.name}
                 </span>
-                <span className="font-semibold">{p.score}</span>
+                <span className="font-semibold">{p.cafesPayes}</span>
               </div>
             ))}
         </div>
-      </div>
-
-      <div className="md:hidden mb-4 flex rounded-lg border border-gray-200 overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setMobileView("ranking")}
-          className={`flex-1 py-2 text-sm font-medium ${
-            mobileView === "ranking" ? "bg-coffee text-white" : "bg-white text-gray-700"
-          }`}
-        >
-          Classement
-        </button>
-        <button
-          type="button"
-          onClick={() => setMobileView("chart")}
-          className={`flex-1 py-2 text-sm font-medium ${
-            mobileView === "chart" ? "bg-coffee text-white" : "bg-white text-gray-700"
-          }`}
-        >
-          Graphe
-        </button>
-      </div>
-
-      <div className="md:hidden">{mobileView === "ranking" ? rankingSection : chartSection}</div>
-
-      <div className="hidden md:block">
-        {rankingSection}
-        {chartSection}
       </div>
 
       {/* ===== SCORES NORMÉS ===== */}
@@ -257,52 +208,28 @@ export default function Stats() {
           Répartition des parties par joueur
         </h3>
 
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={scoreData}>
-            <XAxis dataKey="name" />
-            <YAxis />
+        <ResponsiveContainer width="100%" height={340}>
+          <BarChart
+            data={scoreData}
+            layout="vertical"
+            margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+          >
+            <XAxis type="number" />
+            <YAxis type="category" dataKey="name" width={90} />
             <Tooltip />
             <Legend />
-            <Bar dataKey="joué" stackId="a" fill="#e5e7eb" />
+            <Bar dataKey="joué mais pas choisi" stackId="a" fill="#e5e7eb" />
             <Bar dataKey="payé" stackId="a" fill="#8b5cf6" />
             <Bar dataKey="cherché" stackId="a" fill="#22c55e" />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* ===== SCORES NORMÉS ===== */}
-      <div className="bg-white p-4 rounded shadow mb-8">
-        <h3 className="font-semibold mb-4">
-          Score normé par nombre de parties jouées
-        </h3>
-
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 text-left">Participant</th>
-              <th className="p-2 text-center">Parties jouées</th>
-              <th className="p-2 text-center">Score brut</th>
-              <th className="p-2 text-center">Score normé</th>
-            </tr>
-          </thead>
-          <tbody>
-            {normalizedRanking.map((player) => (
-              <tr key={player.name} className="border-b">
-                <td className="p-2">{player.name}</td>
-                <td className="p-2 text-center">{player.participations}</td>
-                <td className="p-2 text-center">{player.score}</td>
-                <td className="p-2 text-center font-semibold">
-                  {player.scoreNorme.toFixed(2)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
       {/* ===== HISTORIQUE ===== */}
       <div className="bg-white p-4 rounded shadow">
-        <h3 className="font-semibold mb-4">Historique des parties</h3>
+        <h3 className="font-semibold mb-4">
+          Historique des parties
+        </h3>
 
         <table className="w-full text-sm">
           <thead>
@@ -313,36 +240,48 @@ export default function Stats() {
               <th className="p-2 text-center">Cherché</th>
             </tr>
           </thead>
-          <tbody>
-            {games.map((g) => {
-              const participants =
-                Array.isArray(g.participants) && g.participants.length > 0
-                  ? g.participants.map((id) => idToName[id] || `#${id}`).join(", ")
-                  : "-";
+<tbody>
+  {games.map((g) => {
+    const participants =
+      Array.isArray(g.participants) && g.participants.length > 0
+        ? g.participants
+            .map((id) => idToName[id] || `#${id}`)
+            .join(", ")
+        : "-";
 
-              const isDoublette =
-                g.payer_id && g.fetcher_id && g.payer_id === g.fetcher_id;
+    const isDoublette =
+      g.payer_id && g.fetcher_id && g.payer_id === g.fetcher_id;
 
-              return (
-                <tr key={g.id} className={`border-b ${isDoublette ? "bg-yellow-50" : ""}`}>
-                  <td className="p-2">{g.date}</td>
+    return (
+      <tr
+        key={g.id}
+        className={`border-b ${
+          isDoublette ? "bg-yellow-50" : ""
+        }`}
+      >
+        <td className="p-2">{g.date}</td>
 
-                  <td className="p-2">{participants}</td>
+        <td className="p-2">
+          {participants}
+        </td>
 
-                  <td className="p-2 text-center">{g.payer_name || "-"}</td>
+        <td className="p-2 text-center">
+          {g.payer_name || "-"}
+        </td>
 
-                  <td className="p-2 text-center">
-                    {g.fetcher_name || "-"}
-                    {isDoublette && (
-                      <span className="ml-2 text-xs bg-yellow-300 px-2 py-0.5 rounded">
-                        Doublette
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
+        <td className="p-2 text-center">
+          {g.fetcher_name || "-"}
+          {isDoublette && (
+            <span className="ml-2 text-xs bg-yellow-300 px-2 py-0.5 rounded">
+              Doublette
+            </span>
+          )}
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
+
         </table>
       </div>
     </div>
