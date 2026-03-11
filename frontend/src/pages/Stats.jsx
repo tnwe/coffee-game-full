@@ -225,6 +225,36 @@ export default function Stats() {
         </ResponsiveContainer>
       </div>
 
+      {/* ===== SCORES NORMÉS ===== */}
+      <div className="bg-white p-4 rounded shadow mb-8">
+        <h3 className="font-semibold mb-4">
+          Score normé par nombre de parties jouées
+        </h3>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="p-2 text-left">Participant</th>
+              <th className="p-2 text-center">Parties jouées</th>
+              <th className="p-2 text-center">Score brut</th>
+              <th className="p-2 text-center">Score normé</th>
+            </tr>
+          </thead>
+          <tbody>
+            {normalizedRanking.map((player) => (
+              <tr key={player.name} className="border-b">
+                <td className="p-2">{player.name}</td>
+                <td className="p-2 text-center">{player.participations}</td>
+                <td className="p-2 text-center">{player.score}</td>
+                <td className="p-2 text-center font-semibold">
+                  {player.scoreNorme.toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       {/* ===== HISTORIQUE ===== */}
       <div className="bg-white p-4 rounded shadow">
         <h3 className="font-semibold mb-4">
