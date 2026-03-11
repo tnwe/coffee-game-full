@@ -119,6 +119,26 @@ export default function Stats() {
       return a.name.localeCompare(b.name);
     });
 
+    const sortedScoreData = [...scoreData].sort((a, b) => {
+    const totalA = a.payé + a.cherché;
+    const totalB = b.payé + b.cherché;
+
+    if (totalB !== totalA) {
+      return totalB - totalA;
+    }
+
+    return a.name.localeCompare(b.name);
+  });
+
+  const chartHeight = Math.max(340, sortedScoreData.length * 52);
+  const yAxisWidth = Math.min(
+    240,
+    Math.max(
+      130,
+      ...sortedScoreData.map((p) => (p.name ? p.name.length * 8 : 130))
+    )
+  );
+
   const normalizedRanking = scoreData
     .filter((player) => player.participations > 0)
     .sort((a, b) => {
@@ -208,17 +228,23 @@ export default function Stats() {
           Répartition des parties par joueur
         </h3>
 
-        <ResponsiveContainer width="100%" height={340}>
+        <ResponsiveContainer width="100%" height={chartHeight}>
           <BarChart
-            data={scoreData}
+            data={sortedScoreData}
             layout="vertical"
-            margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+            margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
           >
             <XAxis type="number" />
-            <YAxis type="category" dataKey="name" width={90} />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={yAxisWidth}
+              interval={0}
+              tick={{ fontSize: 12 }}
+            />
             <Tooltip />
             <Legend />
-            <Bar dataKey="joué mais pas choisi" stackId="a" fill="#e5e7eb" />
+            <Bar dataKey="joué mais pas payé ni cherché" stackId="a" fill="#e5e7eb" />
             <Bar dataKey="payé" stackId="a" fill="#8b5cf6" />
             <Bar dataKey="cherché" stackId="a" fill="#22c55e" />
           </BarChart>
