@@ -232,7 +232,7 @@ export default function Stats() {
           <BarChart
             data={sortedScoreData}
             layout="vertical"
-            margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+            margin={{ top: 5, right: 20, left: 5, bottom: 5 }}
           >
             <XAxis type="number" />
             <YAxis
