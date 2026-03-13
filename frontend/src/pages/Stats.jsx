@@ -246,9 +246,9 @@ export default function Stats() {
             />
             <Tooltip />
             <Legend />
-            <Bar dataKey="joué mais pas payé ni cherché" stackId="a" fill="#e5e7eb" />
-            <Bar dataKey="payé" stackId="a" fill="#8b5cf6" />
-            <Bar dataKey="cherché" stackId="a" fill="#22c55e" />
+            <Bar dataKey="joué" stackId="a" fill="#f8fafc" stroke="#cbd5e1" strokeWidth={1} />
+            <Bar dataKey="payé" stackId="a" fill="#2563eb" />
+            <Bar dataKey="cherché" stackId="a" fill="#ef4444" />
           </BarChart>
         </ResponsiveContainer>
       </div>
