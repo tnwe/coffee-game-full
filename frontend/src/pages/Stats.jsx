@@ -314,5 +314,6 @@ export default function Stats() {
         </table>
       </div>
     </div>
+  </div>
   );
 }
