@@ -198,28 +198,30 @@ export default function Stats() {
           Score normé par nombre de parties jouées
         </h3>
 
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 text-left">Participant</th>
-              <th className="p-2 text-center">Parties jouées</th>
-              <th className="p-2 text-center">Score brut</th>
-              <th className="p-2 text-center">Score normé</th>
-            </tr>
-          </thead>
-          <tbody>
-            {normalizedRanking.map((player) => (
-              <tr key={player.name} className="border-b">
-                <td className="p-2">{player.name}</td>
-                <td className="p-2 text-center">{player.participations}</td>
-                <td className="p-2 text-center">{player.score}</td>
-                <td className="p-2 text-center font-semibold">
-                  {player.scoreNorme.toFixed(2)}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px] text-sm">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="p-2 text-left">Participant</th>
+                <th className="p-2 text-center">Parties jouées</th>
+                <th className="p-2 text-center">Score brut</th>
+                <th className="p-2 text-center">Score normé</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {normalizedRanking.map((player) => (
+                <tr key={player.name} className="border-b">
+                  <td className="p-2">{player.name}</td>
+                  <td className="p-2 text-center">{player.participations}</td>
+                  <td className="p-2 text-center">{player.score}</td>
+                  <td className="p-2 text-center font-semibold">
+                    {player.scoreNorme.toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* ===== GRAPHE ===== */}
@@ -257,15 +259,16 @@ export default function Stats() {
           Historique des parties
         </h3>
 
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 text-left">Date</th>
-              <th className="p-2 text-left">Participants</th>
-              <th className="p-2 text-center">Payé</th>
-              <th className="p-2 text-center">Cherché</th>
-            </tr>
-          </thead>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px] text-sm">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="p-2 text-left">Date</th>
+                <th className="p-2 text-left">Participants</th>
+                <th className="p-2 text-center">Payé</th>
+                <th className="p-2 text-center">Cherché</th>
+              </tr>
+            </thead>
 <tbody>
   {games.map((g) => {
     const participants =

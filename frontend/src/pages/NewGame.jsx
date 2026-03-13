@@ -201,11 +201,11 @@ export default function NewGame() {
         )}
 
         {/* MODE */}
-        <div className="flex gap-4 mb-4">
+        <div className="flex flex-col sm:flex-row gap-4 mb-4">
           <button
             type="button"
             onClick={() => setMode("draw")}
-            className={`px-3 py-1 rounded ${
+            className={`w-full sm:w-auto px-3 py-1 rounded ${
               mode === "draw"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200"
@@ -216,7 +216,7 @@ export default function NewGame() {
           <button
             type="button"
             onClick={() => setMode("manual")}
-            className={`px-3 py-1 rounded ${
+            className={`w-full sm:w-auto px-3 py-1 rounded ${
               mode === "manual"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200"
@@ -228,30 +228,33 @@ export default function NewGame() {
 
         {/* DATE */}
         <label className="block mb-4">
-          Date
-          <input
-            type="date"
-            className="border p-2 ml-3"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <span>Date</span>
+            <input
+              type="date"
+              className="border p-2"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
         </label>
 
         {/* TABLE JOUEURS */}
-        <table className="w-full mb-6 text-center table-fixed">
-          <thead>
-            <tr className="bg-gray-100 text-lg">
-              <th>Joueur</th>
-              <th>Joue</th>
-              {mode === "draw" && <th>Immunité</th>}
-              {mode === "manual" && (
-                <>
-                  <th>Paye</th>
-                  <th>Cherche</th>
-                </>
-              )}
-            </tr>
-          </thead>
+        <div className="overflow-x-auto mb-6">
+          <table className="w-full min-w-[480px] text-center table-fixed">
+            <thead>
+              <tr className="bg-gray-100 text-lg">
+                <th>Joueur</th>
+                <th>Joue</th>
+                {mode === "draw" && <th>Immunité</th>}
+                {mode === "manual" && (
+                  <>
+                    <th>Paye</th>
+                    <th>Cherche</th>
+                  </>
+                )}
+              </tr>
+            </thead>
           <tbody>
             {players.map((p) => {
               const hasPlayed = !!played[p.id];
@@ -398,9 +401,9 @@ export default function NewGame() {
       </form>
 
       {/* AJOUT JOUEUR */}
-      <div className="bg-white p-4 rounded shadow mt-6 flex gap-3">
+      <div className="bg-white p-4 rounded shadow mt-6 flex flex-col sm:flex-row gap-3">
         <input
-          className="border p-2 flex-1"
+          className="border p-2 flex-1 w-full"
           placeholder="Nouveau joueur"
           value={newPlayer}
           onChange={(e) => setNewPlayer(e.target.value)}
@@ -409,7 +412,7 @@ export default function NewGame() {
           type="button"
           onClick={addPlayer}
           disabled={adding}
-          className="bg-green-600 text-white px-4 py-2 rounded"
+          className="w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded"
         >
           Ajouter
         </button>

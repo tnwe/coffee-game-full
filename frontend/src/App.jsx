@@ -10,9 +10,23 @@ export default function App() {
     <div>
       <Navbar />
       <div className="max-w-4xl mx-auto p-4">
-        <div className="flex gap-3 mb-4">
-          <button className={`px-3 py-2 rounded ${view==="new" ? "bg-coffee text-white" : "bg-white"}`} onClick={()=>setView("new")}>Nouvelle partie</button>
-          <button className={`px-3 py-2 rounded ${view==="stats" ? "bg-coffee text-white" : "bg-white"}`} onClick={()=>setView("stats")}>Statistiques</button>
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          <button
+            className={`w-full sm:w-auto px-3 py-2 rounded ${
+              view === "new" ? "bg-coffee text-white" : "bg-white"
+            }`}
+            onClick={() => setView("new")}
+          >
+            Nouvelle partie
+          </button>
+          <button
+            className={`w-full sm:w-auto px-3 py-2 rounded ${
+              view === "stats" ? "bg-coffee text-white" : "bg-white"
+            }`}
+            onClick={() => setView("stats")}
+          >
+            Statistiques
+          </button>
         </div>
 
         {view === "new" ? <NewGame /> : <Stats />}
