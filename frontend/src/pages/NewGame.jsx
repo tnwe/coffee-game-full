@@ -325,6 +325,7 @@ export default function NewGame() {
             })}
           </tbody>
         </table>
+      </div>
 
         {/* ===== TIRAGE ===== */}
         {mode === "draw" && (
