@@ -338,8 +338,15 @@ export default function NewGame() {
 <div className="bg-gray-50 p-4 rounded text-center relative">
         {showDoublette && (
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <div className="text-4xl animate-bounce">🎉</div>
-            <div className="bg-white/90 px-4 py-2 rounded-lg shadow-md border border-yellow-300 text-yellow-700 font-semibold animate-pulse">
+            <div className="text-5xl animate-bounce">🎉</div>
+
+            <div className="absolute inset-0">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <span key={i} className="confetti sparkle" />
+              ))}
+            </div>
+
+            <div className="bg-white/90 px-5 py-3 rounded-2xl shadow-lg border border-yellow-300 text-yellow-700 font-semibold text-lg animate-pulse">
               Doublette !
             </div>
           </div>
