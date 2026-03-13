@@ -80,6 +80,7 @@ export default function NewGame() {
   const [payer, setPayer] = useState(null);
   const [fetcher, setFetcher] = useState(null);
   const [payerResults, setPayerResults] = useState([]);
+  const [showDoublette, setShowDoublette] = useState(false);
 
   const [date, setDate] = useState(
     new Date().toISOString().slice(0, 10)
@@ -127,6 +128,11 @@ export default function NewGame() {
     } else if (step === "fetcher") {
       setFetcher(winner.id);
       setStep("done");
+
+      if (winner.id === payer) {
+        setShowDoublette(true);
+        setTimeout(() => setShowDoublette(false), 2200);
+      }
     }
   });
 
@@ -329,7 +335,16 @@ export default function NewGame() {
 
         {/* ===== TIRAGE ===== */}
         {mode === "draw" && (
-          <div className="bg-gray-50 p-4 rounded text-center">
+<div className="bg-gray-50 p-4 rounded text-center relative">
+        {showDoublette && (
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <div className="text-4xl animate-bounce">🎉</div>
+            <div className="bg-white/90 px-4 py-2 rounded-lg shadow-md border border-yellow-300 text-yellow-700 font-semibold animate-pulse">
+              Doublette !
+            </div>
+          </div>
+        )}
+
             <h3 className="font-semibold text-lg mb-2">
               {step === "payer"
                 ? "💳 Qui paye le café ?"
