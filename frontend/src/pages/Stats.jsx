@@ -234,7 +234,7 @@ export default function Stats() {
           <BarChart
             data={sortedScoreData}
             layout="vertical"
-            margin={{ top: 5, right: 20, left: 5, bottom: 5 }}
+            margin={{ top: 5, right: 20, left: -15, bottom: 5 }}
           >
             <XAxis type="number" />
             <YAxis
@@ -242,7 +242,7 @@ export default function Stats() {
               dataKey="name"
               width={yAxisWidth}
               interval={0}
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 14 }}
             />
             <Tooltip />
             <Legend />
