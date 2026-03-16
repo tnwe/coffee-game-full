@@ -83,7 +83,7 @@ export default function Stats() {
 
     return {
       name,
-      joué: Math.max(participations - paid - fetched, 0),
+      "participé sans payer ni chercher": Math.max(participations - paid - fetched, 0),
       payé: paid,
       cherché: fetched,
       participations,
@@ -246,9 +246,9 @@ export default function Stats() {
             />
             <Tooltip />
             <Legend />
-            <Bar dataKey="joué" stackId="a" fill="#f8fafc" stroke="#cbd5e1" strokeWidth={1} />
+            <Bar dataKey="participé sans payer ni chercher" stackId="a" fill="#050505" stroke="#cbd5e1" strokeWidth={1} />
             <Bar dataKey="payé" stackId="a" fill="#2563eb" />
-            <Bar dataKey="cherché" stackId="a" fill="#ef4444" />
+            <Bar dataKey="cherché" stackId="a" fill="#e61010" />
           </BarChart>
         </ResponsiveContainer>
       </div>
