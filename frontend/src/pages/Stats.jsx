@@ -102,6 +102,10 @@ export default function Stats() {
     return name === "Experto" ? `${name} 👑` : name;
   };
 
+    const renderNameRaw = (name) => {
+    return name;
+  };
+
   /* =======================
      STATS CALCULATIONS
   ======================= */
@@ -372,7 +376,7 @@ export default function Stats() {
     const participants =
       Array.isArray(g.participants) && g.participants.length > 0
         ? g.participants
-            .map((id) => renderName(idToName[id] || `#${id}`))
+            .map((id) => renderNameRaw(idToName[id] || `#${id}`))
             .join(", ")
         : "-";
 
@@ -393,11 +397,11 @@ export default function Stats() {
         </td>
 
         <td className="p-2 text-center">
-          {renderName(g.payer_name) || "-"}
+          {renderNameRaw(g.payer_name) || "-"}
         </td>
 
         <td className="p-2 text-center">
-          {renderName(g.fetcher_name) || "-"}
+          {renderNameRaw(g.fetcher_name) || "-"}
           {isDoublette && (
             <span className="ml-2 text-xs bg-yellow-300 px-2 py-0.5 rounded">
               Doublette
