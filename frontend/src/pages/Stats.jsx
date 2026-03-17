@@ -316,135 +316,53 @@ export default function Stats() {
         </div>
       </div>
 
-      {/* ===== STATISTIQUES AVANCÉES ===== */}
+      {/* ===== GRAPHE ===== */}
       <div className="bg-white p-4 rounded shadow mb-8 animate-slide-in-up">
         <h3 className="font-semibold mb-4">
-          Évolution temporelle
+          Répartition des parties par joueur
         </h3>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Graphique des parties par jour */}
-          <div>
-            <h4 className="text-sm font-medium mb-2">Parties par jour de la semaine</h4>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart
-                data={[
-                  { day: 'Lundi', count: games.filter(g => new Date(g.date).getDay() === 1).length },
-                  { day: 'Mardi', count: games.filter(g => new Date(g.date).getDay() === 2).length },
-                  { day: 'Mercredi', count: games.filter(g => new Date(g.date).getDay() === 3).length },
-                  { day: 'Jeudi', count: games.filter(g => new Date(g.date).getDay() === 4).length },
-                  { day: 'Vendredi', count: games.filter(g => new Date(g.date).getDay() === 5).length },
-                  { day: 'Samedi', count: games.filter(g => new Date(g.date).getDay() === 6).length },
-                  { day: 'Dimanche', count: games.filter(g => new Date(g.date).getDay() === 0).length },
-                ]}
-                margin={{ top: 5, right: 20, left: -15, bottom: 5 }}
-              >
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Top joueurs du mois */}
-          <div>
-            <h4 className="text-sm font-medium mb-2">Top joueurs du mois dernier</h4>
-            <div className="space-y-2">
-              {playerNames
-                .map(name => ({
-                  name,
-                  monthlyGames: games.filter(g => {
-                    const gameDate = new Date(g.date);
-                    const lastMonth = new Date();
-                    lastMonth.setMonth(lastMonth.getMonth() - 1);
-                    return gameDate >= lastMonth && (
-                      g.payer_name === name || 
-                      g.fetcher_name === name || 
-                      (g.participants && g.participants.some(id => idToName[id] === name))
-                    );
-                  }).length
-                }))
-                .filter(p => p.monthlyGames > 0)
-                .sort((a, b) => b.monthlyGames - a.monthlyGames)
-                .slice(0, 5)
-                .map((player, i) => (
-                  <div key={player.name} className="flex justify-between items-center animate-slide-in-up" style={{animationDelay: `${i * 0.1}s`}}>
-                    <span className="flex items-center">
-                      <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs mr-2">
-                        {i + 1}
-                      </span>
-                      {renderName(player.name)}
-                    </span>
-                    <span className="font-semibold">
-                      <AnimatedCounter value={player.monthlyGames} duration={600} />
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <BarChart
+            data={sortedScoreData}
+            layout="vertical"
+            margin={{ top: 5, right: 20, left: -15, bottom: 5 }}
+          >
+            <XAxis type="number" />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={yAxisWidth}
+              interval={0}
+              tick={{ fontSize: 14 }}
+            />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="participé sans payer ni chercher" stackId="a" fill="#050505" stroke="#cbd5e1" strokeWidth={1} />
+            <Bar dataKey="payé" stackId="a" fill="#2563eb" />
+            <Bar dataKey="cherché" stackId="a" fill="#e61010" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
       {/* ===== HISTORIQUE ===== */}
-      <div className="bg-white p-4 rounded shadow animate-slide-in-up">
+      <div className="bg-white p-4 rounded shadow">
         <h3 className="font-semibold mb-4">
           Historique des parties
         </h3>
 
-        {/* Filtres */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filtrer par joueur
-            </label>
-            <input
-              type="text"
-              value={playerFilter}
-              onChange={(e) => setPlayerFilter(e.target.value)}
-              placeholder="Nom du joueur..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filtrer par date
-            </label>
-            <input
-              type="text"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              placeholder="AAAA-MM-JJ..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          {(playerFilter || dateFilter) && (
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  setPlayerFilter("");
-                  setDateFilter("");
-                }}
-                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200"
-              >
-                Effacer
-              </button>
-            </div>
-          )}
-        </div>
-
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[320px] text-sm">
+          <table className="w-full min-w-[480px] text-sm">
             <thead>
               <tr className="bg-gray-100">
                 <th className="p-2 text-left">Date</th>
-                <th className="p-2 text-left hidden sm:table-cell">Participants</th>
+                <th className="p-2 text-left">Participants</th>
                 <th className="p-2 text-center">Payé</th>
-                <th className="p-2 text-center hidden md:table-cell">Cherché</th>
+                <th className="p-2 text-center">Cherché</th>
               </tr>
             </thead>
 <tbody>
-  {filteredGames.map((g) => {
+  {games.map((g) => {
     const participants =
       Array.isArray(g.participants) && g.participants.length > 0
         ? g.participants
@@ -464,7 +382,7 @@ export default function Stats() {
       >
         <td className="p-2">{g.date}</td>
 
-        <td className="p-2 hidden sm:table-cell">
+        <td className="p-2">
           {participants}
         </td>
 
@@ -472,7 +390,7 @@ export default function Stats() {
           {renderName(g.payer_name) || "-"}
         </td>
 
-        <td className="p-2 text-center hidden md:table-cell">
+        <td className="p-2 text-center">
           {renderName(g.fetcher_name) || "-"}
           {isDoublette && (
             <span className="ml-2 text-xs bg-yellow-300 px-2 py-0.5 rounded">
