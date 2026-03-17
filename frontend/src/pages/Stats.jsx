@@ -369,29 +369,6 @@ export default function Stats() {
         </div>
       </div>
 
-        <ResponsiveContainer width="100%" height={chartHeight}>
-          <BarChart
-            data={sortedScoreData}
-            layout="vertical"
-            margin={{ top: 5, right: 20, left: -15, bottom: 5 }}
-          >
-            <XAxis type="number" />
-            <YAxis
-              type="category"
-              dataKey="name"
-              width={yAxisWidth}
-              interval={0}
-              tick={{ fontSize: 14 }}
-            />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="participé sans payer ni chercher" stackId="a" fill="#050505" stroke="#cbd5e1" strokeWidth={1} />
-            <Bar dataKey="payé" stackId="a" fill="#2563eb" />
-            <Bar dataKey="cherché" stackId="a" fill="#e61010" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
       {/* ===== HISTORIQUE ===== */}
       <div className="bg-white p-4 rounded shadow animate-slide-in-up">
         <h3 className="font-semibold mb-4">
