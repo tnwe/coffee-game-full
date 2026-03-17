@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 /* =======================
    DRAW HOOK
 ======================= */
-function useDraw(participants, onFinish) {
+function useDraw(participants, renderName, onFinish) {
   const [running, setRunning] = useState(false);
   const [name, setName] = useState("???");
   const [isSlowing, setIsSlowing] = useState(false);
@@ -131,7 +131,7 @@ export default function NewGame() {
 
   const participants = players.filter((p) => played[p.id]);
 
-  const draw = useDraw(participants, (winner) => {
+  const draw = useDraw(participants, renderName, (winner) => {
     if (step === "payer") {
       const hasImmunity = immune[winner.id];
 

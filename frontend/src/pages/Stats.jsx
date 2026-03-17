@@ -17,6 +17,7 @@ export default function Stats() {
   const [reversePodium, setReversePodium] = useState(false);
   const [dateFilter, setDateFilter] = useState("");
   const [playerFilter, setPlayerFilter] = useState("");
+  const [showExtendedScores, setShowExtendedScores] = useState(false);
 
   // Composant pour animer les compteurs
   function AnimatedCounter({ value, duration = 1000 }) {
@@ -31,7 +32,7 @@ export default function Stats() {
             if (entries[0].isIntersecting) {
               setHasAnimated(true);
               let start = 0;
-              const end = parseInt(value);
+              const end = parseFloat(value);
               const increment = end / (duration / 16);
               const timer = setInterval(() => {
                 start += increment;
@@ -39,7 +40,7 @@ export default function Stats() {
                   setCount(end);
                   clearInterval(timer);
                 } else {
-                  setCount(Math.floor(start));
+                  setCount(start);
                 }
               }, 16);
             }
@@ -51,7 +52,7 @@ export default function Stats() {
       }
     }, [value, duration, hasAnimated]);
 
-    return <span ref={elementRef} className="animate-count-up">{count}</span>;
+    return <span ref={elementRef} className="animate-count-up">{count.toFixed(2)}</span>;
   }
 
   useEffect(() => {
@@ -269,17 +270,29 @@ export default function Stats() {
 
       {/* ===== SCORES NORMÉS ===== */}
       <div className="bg-white p-4 rounded shadow mb-8 animate-slide-in-up">
-        <h3 className="font-semibold mb-4">
-          Score normé par nombre de parties jouées
-        </h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-semibold">
+            Score normé par nombre de parties jouées
+          </h3>
+          <button
+            onClick={() => setShowExtendedScores(!showExtendedScores)}
+            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
+          >
+            {showExtendedScores ? "Réduire" : "Étendre"}
+          </button>
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[320px] text-sm">
             <thead>
               <tr className="bg-gray-100">
                 <th className="p-2 text-left">Participant</th>
-                <th className="p-2 text-center hidden sm:table-cell">Parties jouées</th>
-                <th className="p-2 text-center hidden md:table-cell">Score brut</th>
+                {showExtendedScores && (
+                  <>
+                    <th className="p-2 text-center">Parties jouées</th>
+                    <th className="p-2 text-center">Score brut</th>
+                  </>
+                )}
                 <th className="p-2 text-center">Score normé</th>
               </tr>
             </thead>
@@ -287,8 +300,12 @@ export default function Stats() {
               {normalizedRanking.map((player) => (
                 <tr key={player.name} className="border-b">
                   <td className="p-2 font-medium">{player.name}</td>
-                  <td className="p-2 text-center hidden sm:table-cell">{player.participations}</td>
-                  <td className="p-2 text-center hidden md:table-cell">{player.score}</td>
+                  {showExtendedScores && (
+                    <>
+                      <td className="p-2 text-center">{player.participations}</td>
+                      <td className="p-2 text-center">{player.score}</td>
+                    </>
+                  )}
                   <td className="p-2 text-center font-semibold">
                     <AnimatedCounter value={Math.round(player.scoreNorme * 100) / 100} duration={800} />
                   </td>
