@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import SessionLocal
-from .. import crud
+from .. import crud, models
 from datetime import date
 from pydantic import BaseModel
 
@@ -31,6 +31,14 @@ def create_game(payload: GameIn, db: Session = Depends(get_db)):
     if not payload.players:
         raise HTTPException(status_code=400, detail="No players selected")
     game = crud.create_game(db, d, payload.players, payload.payer, payload.fetcher)
+    
+    # Grant immunity to payer
+    if payload.payer:
+        payer = db.query(models.Player).filter(models.Player.id == payload.payer).first()
+        if payer:
+            payer.has_immunity = True
+            db.commit()
+    
     return {"ok": True, "game_id": game.id}
 
 @router.get("/")

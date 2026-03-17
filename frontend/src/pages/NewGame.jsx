@@ -104,7 +104,17 @@ export default function NewGame() {
   function loadPlayers() {
     fetch("/api/players/")
       .then((r) => r.json())
-      .then(setPlayers);
+      .then((players) => {
+        setPlayers(players);
+        // Initialize immune state with players who have immunity
+        const immuneState = {};
+        players.forEach((p) => {
+          if (p.has_immunity) {
+            immuneState[p.id] = true;
+          }
+        });
+        setImmune(immuneState);
+      });
   }
 
   const participants = players.filter((p) => played[p.id]);
@@ -120,6 +130,12 @@ export default function NewGame() {
 
       if (hasImmunity) {
         setImmune({});
+        // Update backend: remove immunity
+        fetch(`/api/players/${winner.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ has_immunity: false }),
+        }).catch(console.error);
         draw.reset();
         setTimeout(draw.start, 800);
       } else {
@@ -278,7 +294,7 @@ export default function NewGame() {
                     isSelected ? "bg-blue-100" : ""
                   }`}
                 >
-                  <td className="p-2">{renderName(p.name)}</td>
+                  <td className="p-2">{renderName(p.name)} {p.has_immunity && "🛡️"}</td>
                   <td>
                     <input
                       type="checkbox"
@@ -296,7 +312,7 @@ export default function NewGame() {
                     <td>
                       <input
                         type="checkbox"
-                        disabled={!hasPlayed}
+                        disabled={!hasPlayed || !p.has_immunity}
                         checked={!!immune[p.id]}
                         onChange={() =>
                           setImmune((v) => ({
