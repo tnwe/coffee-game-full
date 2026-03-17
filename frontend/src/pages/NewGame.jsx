@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from "react";
 function useDraw(participants, onFinish) {
   const [running, setRunning] = useState(false);
   const [name, setName] = useState("???");
+  const [isSlowing, setIsSlowing] = useState(false);
+  const [winnerSelected, setWinnerSelected] = useState(false);
 
   const timer = useRef(null);
   const index = useRef(0);
@@ -31,6 +33,8 @@ function useDraw(participants, onFinish) {
     slowing.current = false;
     speed.current = 60;
     setRunning(true);
+    setIsSlowing(false);
+    setWinnerSelected(false);
 
     const loop = () => {
       tick();
@@ -42,6 +46,7 @@ function useDraw(participants, onFinish) {
   function stop() {
     if (!running) return;
     slowing.current = true;
+    setIsSlowing(true);
     clear();
 
     const slow = () => {
@@ -52,10 +57,15 @@ function useDraw(participants, onFinish) {
       } else {
         clear();
         setRunning(false);
+        setIsSlowing(false);
         const winner =
           participants[Math.floor(Math.random() * participants.length)];
         setName(renderName(winner.name));
-        onFinish(winner);
+        setWinnerSelected(true);
+        setTimeout(() => {
+          onFinish(winner);
+          setWinnerSelected(false);
+        }, 1000); // Délai pour montrer l'animation de victoire
       }
     };
     slow();
@@ -64,10 +74,12 @@ function useDraw(participants, onFinish) {
   function reset() {
     clear();
     setRunning(false);
+    setIsSlowing(false);
+    setWinnerSelected(false);
     setName("???");
   }
 
-  return { name, running, start, stop, reset };
+  return { name, running, isSlowing, winnerSelected, start, stop, reset };
 }
 
 /* =======================
@@ -216,7 +228,7 @@ export default function NewGame() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-4xl mx-auto p-2 sm:p-4">
       <h2 className="text-lg font-semibold mb-4">Nouvelle partie</h2>
 
       <form onSubmit={submit} className="bg-white p-4 rounded shadow">
@@ -267,16 +279,16 @@ export default function NewGame() {
 
         {/* TABLE JOUEURS */}
         <div className="overflow-x-auto mb-6">
-          <table className="w-full min-w-[480px] text-center table-fixed">
+          <table className="w-full min-w-[320px] text-center table-fixed">
             <thead>
-              <tr className="bg-gray-100 text-lg">
-                <th>Joueur</th>
-                <th>Joue</th>
-                {mode === "draw" && <th>Immunité</th>}
+              <tr className="bg-gray-100 text-sm sm:text-base">
+                <th className="p-1 sm:p-2 w-1/3">Joueur</th>
+                <th className="p-1 sm:p-2 w-1/6">Joue</th>
+                {mode === "draw" && <th className="p-1 sm:p-2 w-1/6">Immunité</th>}
                 {mode === "manual" && (
                   <>
-                    <th>Paye</th>
-                    <th>Cherche</th>
+                    <th className="p-1 sm:p-2 w-1/6">Paye</th>
+                    <th className="p-1 sm:p-2 w-1/6">Cherche</th>
                   </>
                 )}
               </tr>
@@ -294,8 +306,8 @@ export default function NewGame() {
                     isSelected ? "bg-blue-100" : ""
                   }`}
                 >
-                  <td className="p-2">{renderName(p.name)} {p.has_immunity && "🛡️"}</td>
-                  <td>
+                  <td className="p-1 sm:p-2 text-sm sm:text-base">{renderName(p.name)} {p.has_immunity && "🛡️"}</td>
+                  <td className="p-1 sm:p-2">
                     <input
                       type="checkbox"
                       checked={hasPlayed}
@@ -305,11 +317,12 @@ export default function NewGame() {
                           [p.id]: !v[p.id],
                         }))
                       }
+                      className="w-4 h-4"
                     />
                   </td>
 
                   {mode === "draw" && (
-                    <td>
+                    <td className="p-1 sm:p-2">
                       <input
                         type="checkbox"
                         disabled={!hasPlayed || !p.has_immunity}
@@ -320,28 +333,31 @@ export default function NewGame() {
                             [p.id]: !v[p.id],
                           }))
                         }
+                        className="w-4 h-4"
                       />
                     </td>
                   )}
 
                   {mode === "manual" && (
                     <>
-                      <td>
+                      <td className="p-1 sm:p-2">
                         <input
                           type="radio"
                           name="payer"
                           disabled={!hasPlayed}
                           checked={payer === p.id}
                           onChange={() => setPayer(p.id)}
+                          className="w-4 h-4"
                         />
                       </td>
-                      <td>
+                      <td className="p-1 sm:p-2">
                         <input
                           type="radio"
                           name="fetcher"
                           disabled={!hasPlayed}
                           checked={fetcher === p.id}
                           onChange={() => setFetcher(p.id)}
+                          className="w-4 h-4"
                         />
                       </td>
                     </>
@@ -361,8 +377,16 @@ export default function NewGame() {
             <div className="text-5xl animate-bounce">🎉</div>
 
             <div className="absolute inset-0">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <span key={i} className="confetti sparkle" />
+              {Array.from({ length: 20 }).map((_, i) => (
+                <span 
+                  key={i} 
+                  className="sparkle" 
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 2}s`,
+                    background: ['#fbbf24', '#f59e0b', '#d97706', '#b45309', '#92400e'][Math.floor(Math.random() * 5)]
+                  }}
+                />
               ))}
             </div>
 
@@ -380,7 +404,10 @@ export default function NewGame() {
                 : ""}
             </h3>
 
-            <div className="text-4xl font-bold h-14 mb-3">
+            <div className={`text-4xl font-bold h-14 mb-3 transition-all duration-300 ${
+              draw.running ? 'animate-fade-in-out' : 
+              draw.winnerSelected ? 'text-green-600 animate-pulse' : ''
+            }`}>
               {draw.name}
             </div>
 
@@ -390,10 +417,10 @@ export default function NewGame() {
                 onClick={
                   draw.running ? draw.stop : draw.start
                 }
-                className={`px-6 py-3 rounded text-white ${
+                className={`px-6 py-3 rounded text-white transition-all duration-300 ${
                   draw.running
-                    ? "bg-red-600"
-                    : "bg-green-600"
+                    ? "bg-red-600 animate-pulse-glow"
+                    : "bg-green-600 hover:bg-green-700"
                 }`}
               >
                 {draw.running ? "🛑 Stop" : "▶️ Lancer"}
@@ -404,7 +431,7 @@ export default function NewGame() {
               {payerResults.map((r, i) => (
                 <div
                   key={i}
-                  className="bg-blue-100 p-2 rounded"
+                  className="bg-blue-100 p-2 rounded animate-slide-in-up"
                 >
                   💳 Résultat {i + 1} :{" "}
                   <strong>
@@ -414,12 +441,12 @@ export default function NewGame() {
                       )?.name
                     )}
                   </strong>{" "}
-                  {r.immune && "🛡️"}
+                  {r.immune && <span className="animate-shield-break inline-block">🛡️</span>}
                 </div>
               ))}
 
               {fetcher && (
-                <div className="bg-green-100 p-2 rounded">
+                <div className="bg-green-100 p-2 rounded animate-slide-in-up">
                   🚶 Qui va chercher :{" "}
                   <strong>
                     {renderName(
