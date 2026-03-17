@@ -13,6 +13,8 @@ export default function Stats() {
   const [stats, setStats] = useState(null);
   const [games, setGames] = useState([]);
   const [players, setPlayers] = useState([]);
+  const [showAllPodium, setShowAllPodium] = useState(false);
+  const [reversePodium, setReversePodium] = useState(false);
 
   useEffect(() => {
     fetch("/api/stats/")
@@ -51,6 +53,10 @@ export default function Stats() {
     return String(v);
   };
 
+  const renderName = (name) => {
+    return name === "Experto" ? `${name} 👑` : name;
+  };
+
   /* =======================
      STATS CALCULATIONS
   ======================= */
@@ -82,7 +88,7 @@ export default function Stats() {
     const normalizedScore = participations > 0 ? score / participations : 0;
 
     return {
-      name,
+      name: renderName(name),
       "participé sans payer ni chercher": Math.max(participations - paid - fetched, 0),
       payé: paid,
       cherché: fetched,
@@ -109,13 +115,12 @@ export default function Stats() {
 
   const podiumData = playerNames
     .map((name) => ({
-      name,
+      name: renderName(name),
       cafesPayes: paidCoffeesMap[name] || 0,
     }))
     .sort((a, b) => {
-      if (b.cafesPayes !== a.cafesPayes) {
-        return b.cafesPayes - a.cafesPayes;
-      }
+      const cmp = reversePodium ? a.cafesPayes - b.cafesPayes : b.cafesPayes - a.cafesPayes;
+      if (cmp !== 0) return cmp;
       return a.name.localeCompare(b.name);
     });
 
@@ -180,7 +185,7 @@ export default function Stats() {
             Podium : nombre de cafés payés
           </div>
           {podiumData
-            .slice(0, 3)
+            .slice(0, showAllPodium ? podiumData.length : 3)
             .map((p, i) => (
               <div key={p.name} className="flex justify-between">
                 <span>
@@ -189,6 +194,20 @@ export default function Stats() {
                 <span className="font-semibold">{p.cafesPayes}</span>
               </div>
             ))}
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => setShowAllPodium(!showAllPodium)}
+              className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+            >
+              {showAllPodium ? "Afficher moins" : "Afficher plus"}
+            </button>
+            <button
+              onClick={() => setReversePodium(!reversePodium)}
+              className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
+            >
+              {reversePodium ? "Classement normal" : "Inverser le classement"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -274,7 +293,7 @@ export default function Stats() {
     const participants =
       Array.isArray(g.participants) && g.participants.length > 0
         ? g.participants
-            .map((id) => idToName[id] || `#${id}`)
+            .map((id) => renderName(idToName[id] || `#${id}`))
             .join(", ")
         : "-";
 
@@ -295,11 +314,11 @@ export default function Stats() {
         </td>
 
         <td className="p-2 text-center">
-          {g.payer_name || "-"}
+          {renderName(g.payer_name) || "-"}
         </td>
 
         <td className="p-2 text-center">
-          {g.fetcher_name || "-"}
+          {renderName(g.fetcher_name) || "-"}
           {isDoublette && (
             <span className="ml-2 text-xs bg-yellow-300 px-2 py-0.5 rounded">
               Doublette

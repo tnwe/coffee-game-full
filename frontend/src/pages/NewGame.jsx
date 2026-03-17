@@ -22,7 +22,7 @@ function useDraw(participants, onFinish) {
   function tick() {
     if (!participants.length) return;
     index.current = (index.current + 1) % participants.length;
-    setName(participants[index.current].name);
+    setName(renderName(participants[index.current].name));
   }
 
   function start() {
@@ -54,7 +54,7 @@ function useDraw(participants, onFinish) {
         setRunning(false);
         const winner =
           participants[Math.floor(Math.random() * participants.length)];
-        setName(winner.name);
+        setName(renderName(winner.name));
         onFinish(winner);
       }
     };
@@ -92,6 +92,10 @@ export default function NewGame() {
 
   const [newPlayer, setNewPlayer] = useState("");
   const [adding, setAdding] = useState(false);
+
+  const renderName = (name) => {
+    return name === "Experto" ? `${name} 👑` : name;
+  };
 
   useEffect(() => {
     loadPlayers();
@@ -274,7 +278,7 @@ export default function NewGame() {
                     isSelected ? "bg-blue-100" : ""
                   }`}
                 >
-                  <td className="p-2">{p.name}</td>
+                  <td className="p-2">{renderName(p.name)}</td>
                   <td>
                     <input
                       type="checkbox"
@@ -388,11 +392,11 @@ export default function NewGame() {
                 >
                   💳 Résultat {i + 1} :{" "}
                   <strong>
-                    {
+                    {renderName(
                       players.find(
                         (p) => p.id === r.id
                       )?.name
-                    }
+                    )}
                   </strong>{" "}
                   {r.immune && "🛡️"}
                 </div>
@@ -402,11 +406,11 @@ export default function NewGame() {
                 <div className="bg-green-100 p-2 rounded">
                   🚶 Qui va chercher :{" "}
                   <strong>
-                    {
+                    {renderName(
                       players.find(
                         (p) => p.id === fetcher
                       )?.name
-                    }
+                    )}
                   </strong>{" "}
                   ✅
                 </div>
