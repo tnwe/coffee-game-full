@@ -9,7 +9,7 @@ from .routers import players, games, stats
 from . import models
 from .seed import seed_players   # ← nouveau
 
-app = FastAPI(title="Coffee Game API")
+app = FastAPI(title="Le jeu du café API")
 
 @app.on_event("startup")
 def startup_event():
