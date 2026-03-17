@@ -5,7 +5,7 @@ def seed_players():
     db = SessionLocal()
     try:
         initial_players = [
-            "Olivier",
+            "Experto",
             "Rainier",
             "Sabine",
             "Thibault",
