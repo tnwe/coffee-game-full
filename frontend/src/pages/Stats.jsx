@@ -20,39 +20,45 @@ export default function Stats() {
   const [showExtendedScores, setShowExtendedScores] = useState(false);
 
   // Composant pour animer les compteurs
-  function AnimatedCounter({ value, duration = 1000 }) {
-    const [count, setCount] = useState(0);
-    const [hasAnimated, setHasAnimated] = useState(false);
-    const elementRef = useRef();
+  function AnimatedCounter({ value, duration = 1000, decimals = 0 }) {
+  const [count, setCount] = useState(0);
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const elementRef = useRef();
 
-    useEffect(() => {
-      if (!hasAnimated && elementRef.current) {
-        const observer = new IntersectionObserver(
-          (entries) => {
-            if (entries[0].isIntersecting) {
-              setHasAnimated(true);
-              let start = 0;
-              const end = parseFloat(value);
-              const increment = end / (duration / 16);
-              const timer = setInterval(() => {
-                start += increment;
-                if (start >= end) {
-                  setCount(end);
-                  clearInterval(timer);
-                } else {
-                  setCount(start);
-                }
-              }, 16);
-            }
-          },
-          { threshold: 0.1 }
-        );
-        observer.observe(elementRef.current);
-        return () => observer.disconnect();
-      }
-    }, [value, duration, hasAnimated]);
+  useEffect(() => {
+    if (!hasAnimated && elementRef.current) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            setHasAnimated(true);
+            let start = 0;
+            const end = parseFloat(value);
+            const increment = end / (duration / 16);
 
-    return <span ref={elementRef} className="animate-count-up">{count.toFixed(2)}</span>;
+            const timer = setInterval(() => {
+              start += increment;
+              if (start >= end) {
+                setCount(end);
+                clearInterval(timer);
+              } else {
+                setCount(start);
+              }
+            }, 16);
+          }
+        },
+        { threshold: 0.1 }
+      );
+
+      observer.observe(elementRef.current);
+      return () => observer.disconnect();
+    }
+  }, [value, duration, hasAnimated]);
+
+  return (
+    <span ref={elementRef} className="animate-count-up">
+      {count.toFixed(decimals)}
+    </span>
+  );
   }
 
   useEffect(() => {
@@ -222,7 +228,7 @@ export default function Stats() {
             Parties enregistrées
           </div>
           <div className="text-2xl font-bold">
-            <AnimatedCounter value={totalGames} />
+            <AnimatedCounter value={totalGames} decimals={0} />
           </div>
         </div>
 
@@ -231,7 +237,7 @@ export default function Stats() {
             Cafés bus
           </div>
           <div className="text-2xl font-bold">
-            <AnimatedCounter value={coffeesDrunk} />
+            <AnimatedCounter value={coffeesDrunk} decimals={0} />
           </div>
         </div>
 
@@ -247,7 +253,7 @@ export default function Stats() {
                   {i + 1}. {p.name}
                 </span>
                 <span className="font-semibold">
-                  <AnimatedCounter value={p.cafesPayes} duration={800} />
+                  <AnimatedCounter value={p.cafesPayes} duration={800} decimals={0} />
                 </span>
               </div>
             ))}
@@ -307,7 +313,7 @@ export default function Stats() {
                     </>
                   )}
                   <td className="p-2 text-center font-semibold">
-                    <AnimatedCounter value={Math.round(player.scoreNorme * 100) / 100} duration={800} />
+                    <AnimatedCounter value={player.scoreNorme} duration={800} decimals={2} />
                   </td>
                 </tr>
               ))}
