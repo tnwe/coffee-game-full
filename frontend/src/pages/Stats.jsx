@@ -9,6 +9,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+let hasAnimatedOnce = false;
+
 export default function Stats() {
   const [stats, setStats] = useState(null);
   const [games, setGames] = useState([]);
@@ -21,19 +23,22 @@ export default function Stats() {
 
   // Composant pour animer les compteurs
   function AnimatedCounter({ value, duration = 1000, decimals = 0 }) {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(hasAnimatedOnce ? value : 0);
   const elementRef = useRef();
 
-  // ✅ Persiste entre re-renders sans reset
-  const hasAnimatedRef = useRef(false);
-
   useEffect(() => {
-    if (hasAnimatedRef.current || !elementRef.current) return;
+    // ✅ Si déjà animé → afficher direct sans animation
+    if (hasAnimatedOnce) {
+      setCount(value);
+      return;
+    }
+
+    if (!elementRef.current) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !hasAnimatedRef.current) {
-          hasAnimatedRef.current = true;
+        if (entries[0].isIntersecting) {
+          hasAnimatedOnce = true; // 🔥 on bloque pour toute la page
 
           let start = 0;
           const end = parseFloat(value);
@@ -59,7 +64,7 @@ export default function Stats() {
 
   return (
     <span ref={elementRef} className="animate-count-up">
-      {count.toFixed(decimals)}
+      {Number(count).toFixed(decimals)}
     </span>
   );
 }
