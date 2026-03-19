@@ -22,44 +22,47 @@ export default function Stats() {
   // Composant pour animer les compteurs
   function AnimatedCounter({ value, duration = 1000, decimals = 0 }) {
   const [count, setCount] = useState(0);
-  const [hasAnimated, setHasAnimated] = useState(false);
   const elementRef = useRef();
 
+  // ✅ Persiste entre re-renders sans reset
+  const hasAnimatedRef = useRef(false);
+
   useEffect(() => {
-    if (!hasAnimated && elementRef.current) {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting) {
-            setHasAnimated(true);
-            let start = 0;
-            const end = parseFloat(value);
-            const increment = end / (duration / 16);
+    if (hasAnimatedRef.current || !elementRef.current) return;
 
-            const timer = setInterval(() => {
-              start += increment;
-              if (start >= end) {
-                setCount(end);
-                clearInterval(timer);
-              } else {
-                setCount(start);
-              }
-            }, 16);
-          }
-        },
-        { threshold: 0.1 }
-      );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !hasAnimatedRef.current) {
+          hasAnimatedRef.current = true;
 
-      observer.observe(elementRef.current);
-      return () => observer.disconnect();
-    }
-  }, [value, duration, hasAnimated]);
+          let start = 0;
+          const end = parseFloat(value);
+          const increment = end / (duration / 16);
+
+          const timer = setInterval(() => {
+            start += increment;
+            if (start >= end) {
+              setCount(end);
+              clearInterval(timer);
+            } else {
+              setCount(start);
+            }
+          }, 16);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(elementRef.current);
+    return () => observer.disconnect();
+  }, [value, duration]);
 
   return (
     <span ref={elementRef} className="animate-count-up">
       {count.toFixed(decimals)}
     </span>
   );
-  }
+}
 
   useEffect(() => {
     fetch("/api/stats/")
