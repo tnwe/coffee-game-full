@@ -182,6 +182,9 @@ export default function NewGame() {
     e.preventDefault();
     setError(null);
 
+    async function submit(e) {
+    e.preventDefault();
+
     if (submitting) return; // 🔒 bloque double clic
 
     setSubmitting(true);
