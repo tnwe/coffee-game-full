@@ -435,30 +435,35 @@ export default function NewGame() {
             </div>
 
             {step !== "done" && (
-  <>
-            {/* 🎯 Pendant le tirage → bouton STOP */}
-            {draw.running && (
-              <button
-                type="button"
-                onClick={draw.stop}
-                className="px-6 py-3 rounded text-white bg-red-600 animate-pulse-glow"
-              >
-                🛑 Stop
-              </button>
-            )}
+              <>
+                {/* 🛑 STOP pendant tirage */}
+                {draw.running && (
+                  <button
+                    type="button"
+                    onClick={draw.stop}
+                    className="px-6 py-3 rounded text-white bg-red-600 animate-pulse-glow"
+                  >
+                    🛑 Stop
+                  </button>
+                )}
 
-            {/* 🎯 Bouton LANCER uniquement quand autorisé */}
-            {!draw.running && step === "fetcher" && (
-              <button
-                type="button"
-                onClick={draw.start}
-                className="px-6 py-3 rounded text-white bg-green-600 hover:bg-green-700"
-              >
-                ▶️ Lancer
-              </button>
+                {/* ▶️ LANCER */}
+                {!draw.running &&
+                  (
+                    // 👉 afficher au début OU pour fetcher
+                    (step === "payer" && !payer) ||
+                    step === "fetcher"
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={draw.start}
+                      className="px-6 py-3 rounded text-white bg-green-600 hover:bg-green-700"
+                    >
+                      ▶️ Lancer
+                    </button>
+                  )}
+              </>
             )}
-          </>
-        )}
 
             <div className="mt-4 space-y-2 text-left">
               {payerResults.map((r, i) => (
