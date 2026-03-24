@@ -305,11 +305,7 @@ async function submit(e) {
       <h2 className="text-lg font-semibold mb-4">Nouvelle partie</h2>
 
       <form onSubmit={submit} className="bg-white p-4 rounded shadow">
-        {error && (
-          <div className="bg-red-100 p-2 mb-3 rounded text-red-700">
-            {error}
-          </div>
-        )}
+       
 
         {/* MODE */}
         <div className="flex flex-col sm:flex-row gap-4 mb-4">
@@ -539,11 +535,15 @@ async function submit(e) {
           type="submit"
           className="bg-coffee text-white px-4 py-2 rounded mt-4"
         >
-          Enregistrer
           {submitting ? "Enregistrement..." : "Enregistrer"}
         </button>
       </form>
-
+        {error && (
+          <div className="bg-red-100 p-2 mb-3 rounded text-red-700">
+            {error}
+          </div>
+        )}
+        
       {/* AJOUT JOUEUR */}
       <div className="bg-white p-4 rounded shadow mt-6 flex flex-col sm:flex-row gap-3">
         <input
