@@ -182,8 +182,6 @@ export default function NewGame() {
     e.preventDefault();
     setError(null);
 
-
-
     if (submitting) return; // 🔒 bloque double clic
 
     setSubmitting(true);
@@ -232,49 +230,6 @@ export default function NewGame() {
 
       // 🔁 recharge les dates
       loadGames();
-    } else {
-      setError("Erreur lors de l'enregistrement");
-    }
-
-    setSubmitting(false);
-  
-
-    if (existingDates.includes(date)) {
-      setError("Une partie existe déjà à cette date.");
-      return;
-}
-    if (!participants.length) {
-      setError("Sélectionne au moins un joueur.");
-      return;
-    }
-
-    if (!payer || !fetcher) {
-      setError("Tirage incomplet.");
-      return;
-    }
-
-    const payload = {
-      date,
-      players: participants.map((p) => p.id),
-      payer,
-      fetcher,
-    };
-
-    const res = await fetch("/api/games/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (res.ok) {
-      alert("Partie enregistrée");
-      setPlayed({});
-      setImmune({});
-      setPayer(null);
-      setFetcher(null);
-      setPayerResults([]);
-      setStep("payer");
-      draw.reset();
     } else {
       setError("Erreur lors de l'enregistrement");
     }
