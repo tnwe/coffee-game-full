@@ -182,9 +182,6 @@ export default function NewGame() {
     e.preventDefault();
     setError(null);
 
-async function submit(e) {
-  e.preventDefault();
-
     if (submitting) return; // 🔒 bloque double clic
 
     setSubmitting(true);
@@ -481,20 +478,30 @@ async function submit(e) {
             </div>
 
             {step !== "done" && (
+  <>
+            {/* 🎯 Pendant le tirage → bouton STOP */}
+            {draw.running && (
               <button
                 type="button"
-                onClick={
-                  draw.running ? draw.stop : draw.start
-                }
-                className={`px-6 py-3 rounded text-white transition-all duration-300 ${
-                  draw.running
-                    ? "bg-red-600 animate-pulse-glow"
-                    : "bg-green-600 hover:bg-green-700"
-                }`}
+                onClick={draw.stop}
+                className="px-6 py-3 rounded text-white bg-red-600 animate-pulse-glow"
               >
-                {draw.running ? "🛑 Stop" : "▶️ Lancer"}
+                🛑 Stop
               </button>
             )}
+
+            {/* 🎯 Bouton LANCER uniquement quand autorisé */}
+            {!draw.running && step === "fetcher" && (
+              <button
+                type="button"
+                onClick={draw.start}
+                className="px-6 py-3 rounded text-white bg-green-600 hover:bg-green-700"
+              >
+                ▶️ Lancer
+              </button>
+            )}
+          </>
+        )}
 
             <div className="mt-4 space-y-2 text-left">
               {payerResults.map((r, i) => (
@@ -502,7 +509,7 @@ async function submit(e) {
                   key={i}
                   className="bg-blue-100 p-2 rounded animate-slide-in-up"
                 >
-                  💳 Résultat {i + 1} :{" "}
+                  💳 Qui paye :{" "}
                   <strong>
                     {renderName(
                       players.find(
