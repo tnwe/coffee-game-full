@@ -93,7 +93,8 @@ export default function NewGame() {
   const [fetcher, setFetcher] = useState(null);
   const [payerResults, setPayerResults] = useState([]);
   const [showDoublette, setShowDoublette] = useState(false);
-
+  const [existingDates, setExistingDates] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
   const [date, setDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
@@ -111,7 +112,16 @@ export default function NewGame() {
 
   useEffect(() => {
     loadPlayers();
+    loadGames();
   }, []);
+
+  async function loadGames() {
+    const res = await fetch("/api/games/");
+    const games = await res.json();
+
+    const dates = games.map((g) => g.date);
+    setExistingDates(dates);
+  }
 
   function loadPlayers() {
     fetch("/api/players/")
@@ -172,6 +182,68 @@ export default function NewGame() {
     e.preventDefault();
     setError(null);
 
+async function submit(e) {
+  e.preventDefault();
+
+    if (submitting) return; // 🔒 bloque double clic
+
+    setSubmitting(true);
+    setError(null);
+
+    if (!participants.length) {
+      setError("Sélectionne au moins un joueur.");
+      setSubmitting(false);
+      return;
+    }
+
+    if (!payer || !fetcher) {
+      setError("Tirage incomplet.");
+      setSubmitting(false);
+      return;
+    }
+
+    if (existingDates.includes(date)) {
+      setError("Une partie existe déjà à cette date.");
+      setSubmitting(false);
+      return;
+    }
+
+    const payload = {
+      date,
+      players: participants.map((p) => p.id),
+      payer,
+      fetcher,
+    };
+
+    const res = await fetch("/api/games/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      alert("Partie enregistrée");
+      setPlayed({});
+      setImmune({});
+      setPayer(null);
+      setFetcher(null);
+      setPayerResults([]);
+      setStep("payer");
+      draw.reset();
+
+      // 🔁 recharge les dates
+      loadGames();
+    } else {
+      setError("Erreur lors de l'enregistrement");
+    }
+
+    setSubmitting(false);
+  }
+
+    if (existingDates.includes(date)) {
+      setError("Une partie existe déjà à cette date.");
+      return;
+}
     if (!participants.length) {
       setError("Sélectionne au moins un joueur.");
       return;
@@ -226,6 +298,7 @@ export default function NewGame() {
     }
     setAdding(false);
   }
+
 
   return (
     <div className="max-w-4xl mx-auto p-2 sm:p-4">
@@ -467,6 +540,7 @@ export default function NewGame() {
           className="bg-coffee text-white px-4 py-2 rounded mt-4"
         >
           Enregistrer
+          {submitting ? "Enregistrement..." : "Enregistrer"}
         </button>
       </form>
 
