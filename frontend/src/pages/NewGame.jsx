@@ -182,8 +182,7 @@ export default function NewGame() {
     e.preventDefault();
     setError(null);
 
-    async function submit(e) {
-    e.preventDefault();
+
 
     if (submitting) return; // 🔒 bloque double clic
 
@@ -238,7 +237,7 @@ export default function NewGame() {
     }
 
     setSubmitting(false);
-  }
+  
 
     if (existingDates.includes(date)) {
       setError("Une partie existe déjà à cette date.");
