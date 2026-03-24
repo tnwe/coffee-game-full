@@ -434,7 +434,7 @@ export default function NewGame() {
               {draw.name}
             </div>
 
-            {step !== "done" && (
+            {step !== "done" && !draw.winnerSelected && (
               <>
                 {/* 🛑 STOP pendant tirage */}
                 {draw.running && (
@@ -450,7 +450,6 @@ export default function NewGame() {
                 {/* ▶️ LANCER */}
                 {!draw.running &&
                   (
-                    // 👉 afficher au début OU pour fetcher
                     (step === "payer" && !payer) ||
                     step === "fetcher"
                   ) && (
