@@ -25,7 +25,6 @@ Base = declarative_base()
 
 def seed_players(db):
     initial_players = [
-        "Olivier",
         "Rainier",
         "Sabine",
         "Thibault",
