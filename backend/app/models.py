@@ -2,11 +2,13 @@ from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 
+
 class Player(Base):
     __tablename__ = "players"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
     has_immunity = Column(Boolean, default=False)
+
 
 class Game(Base):
     __tablename__ = "games"
@@ -17,6 +19,7 @@ class Game(Base):
 
     payer = relationship("Player", foreign_keys=[payer_id], lazy="joined")
     fetcher = relationship("Player", foreign_keys=[fetcher_id], lazy="joined")
+
 
 class GamePlayer(Base):
     __tablename__ = "game_players"
