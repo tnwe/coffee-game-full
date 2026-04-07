@@ -1,0 +1,27 @@
+name: Reset Immunities
+
+on:
+  schedule:
+    - cron: '1 0 * * 1'  # Chaque lundi à 00h01 (UTC)
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install sqlalchemy
+
+      - name: Run reset script
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/reset_immunities.py
