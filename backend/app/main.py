@@ -19,6 +19,11 @@ def startup_event():
     # seed
     seed_players()
 
+# Route de santé
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
