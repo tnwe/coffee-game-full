@@ -7,7 +7,7 @@ from pathlib import Path
 from .database import engine, Base
 from .routers import players, games, stats
 from . import models
-from .seed import seed_players   # ← nouveau
+from .seed import seed_players, check_and_add_abas_immunity  # ← mis à jour
 
 app = FastAPI(title="Le jeu du café API")
 
@@ -18,6 +18,9 @@ def startup_event():
 
     # seed
     seed_players()
+    
+    # Vérifier et ajouter l'immunité d'Abas si nécessaire
+    check_and_add_abas_immunity()
 
 # Route de santé
 @app.get("/health")
