@@ -1,7 +1,12 @@
+import sys
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+# Ajouter le chemin du projet au sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from backend.app.models import Base, Player
-import os
 
 # Récupère l'URL de la base de données depuis les variables d'environnement
 DATABASE_URL = os.getenv("DATABASE_URL")
