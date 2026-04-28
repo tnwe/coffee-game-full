@@ -22,3 +22,9 @@ class GamePlayer(Base):
     __tablename__ = "game_players"
     game_id = Column(Integer, ForeignKey("games.id"), primary_key=True)
     player_id = Column(Integer, ForeignKey("players.id"), primary_key=True)
+
+class WeekState(Base):
+    __tablename__ = "week_state"
+    id = Column(Integer, primary_key=True, index=True)
+    last_reset_date = Column(Date, nullable=False)
+    abas_immunity_added = Column(Boolean, default=False)
