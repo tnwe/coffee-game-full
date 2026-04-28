@@ -9,19 +9,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.1
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install sqlalchemy
+          pip install sqlalchemy psycopg2-binary
 
       - name: Run reset script
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python scripts/reset_immunities.py
+        run: |
+          cd ${GITHUB_WORKSPACE}
+          python scripts/reset_immunities.py
