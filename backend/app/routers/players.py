@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import date
 
 from ..database import SessionLocal
 from .. import models, crud, schemas
@@ -20,10 +19,6 @@ def get_db():
 # GET /api/players
 @router.get("/")
 def read_players(db: Session = Depends(get_db)):
-    today = date.today()
-    if today.weekday() == 0:  # Monday
-        db.query(models.Player).update({"has_immunity": False})
-        db.commit()
     return crud.get_players(db)
 
 
