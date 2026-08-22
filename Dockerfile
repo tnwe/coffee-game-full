@@ -1,24 +1,24 @@
-# Coffee Game V2 Dockerfile
-# Multi-stage build for production
+# Coffee Game V2 Dockerfile - Multi-stage build for production
 
-# Stage 1: Build frontend
+# ========== STAGE 1: Build Frontend ==========
 FROM node:18-alpine AS frontend-builder
 
-WORKDIR /app
+WORKDIR /app/frontend
 
-# Copy frontend files
+# Copy frontend dependency files
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci
 
+# Copy all frontend files and build
 COPY frontend .
 RUN npm run build
 
-# Stage 2: Build backend
+# ========== STAGE 2: Build Backend ==========
 FROM python:3.11-slim AS backend-builder
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies for building Python packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -32,31 +32,30 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy backend files
+# Copy backend application files
 COPY backend/app ./app
-COPY frontend/dist ./app/frontend_dist
 
-# Stage 3: Production image
+# ========== STAGE 3: Production Image ==========
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies for production
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create and activate virtual environment
-RUN python -m venv /opt/venv
+# Copy virtual environment from builder
+COPY --from=backend-builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Python dependencies
-COPY --from=backend-builder /opt/venv /opt/venv
-
-# Copy application files
+# Copy backend application from builder
 COPY --from=backend-builder /app ./app
 
-# Create necessary directories
+# Copy built frontend from frontend-builder
+COPY --from=frontend-builder /app/frontend/dist ./app/frontend_dist
+
+# Create data directory
 RUN mkdir -p /app/data
 
 # Set environment variables
@@ -68,8 +67,8 @@ ENV PYTHONUNBUFFERED=1 \
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health', timeout=3)" || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8000/health', timeout=3).raise_for_status()" || exit 1
 
-# Run the application
+# Start the application
 CMD ["uvicorn", "app.main_v2:app", "--host", "0.0.0.0", "--port", "8000"]
