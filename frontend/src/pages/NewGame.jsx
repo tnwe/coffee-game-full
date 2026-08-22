@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Coffee, Users, Crown, Shield, Check, X, Plus, Minus, 
-  Dice, Target, Calendar, Clock, Play, RotateCcw
+  Shuffle, Target, Calendar, Clock, Play, RotateCcw
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -241,7 +241,7 @@ export default function NewGame() {
               : 'btn-secondary hover:bg-coffee-cream/50'
           )}
         >
-          <Dice className="w-4 h-4" />
+          <Shuffle className="w-4 h-4" />
           Tirage au sort
         </button>
         <button
@@ -412,7 +412,7 @@ export default function NewGame() {
             className="card p-6"
           >
             <div className="flex items-center gap-3 mb-6">
-              <Dice className="w-6 h-6 text-coffee-light" />
+              <Shuffle className="w-6 h-6 text-coffee-light" />
               <div>
                 <h3 className="font-semibold text-coffee-dark">
                   {step === 'payer' ? 'Qui paie le café ?' : step === 'fetcher' ? 'Qui va chercher le café ?' : 'Tirage terminé'}
