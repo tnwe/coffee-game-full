@@ -1,17 +1,44 @@
+"""
+Schemas for backward compatibility
+"""
 from pydantic import BaseModel
+from typing import Optional, List
+from datetime import date, datetime
+
 
 class PlayerBase(BaseModel):
     name: str
-    has_immunity: bool = False
+
 
 class PlayerCreate(PlayerBase):
     pass
 
-class Player(PlayerBase):
-    id: int
-
-    class Config:
-        orm_mode = True
 
 class PlayerUpdate(BaseModel):
-    has_immunity: bool = None
+    name: Optional[str] = None
+    has_immunity: Optional[bool] = None
+
+
+class Player(PlayerBase):
+    id: int
+    has_immunity: bool = False
+    
+    class Config:
+        from_orm = True
+
+
+class GameBase(BaseModel):
+    date: date
+    payer_id: Optional[int] = None
+    fetcher_id: Optional[int] = None
+
+
+class GameCreate(GameBase):
+    players: List[int]
+
+
+class Game(GameBase):
+    id: int
+    
+    class Config:
+        from_orm = True

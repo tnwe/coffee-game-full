@@ -1,7 +1,14 @@
-from .database import SessionLocal
-from . import models
+"""
+Seed data for the Coffee Game application
+"""
+from app.db.session import SessionLocal
+from app.models import Player, WeekState
+from datetime import date
 
 def seed_players():
+    """
+    Seed initial players if they don't exist
+    """
     db = SessionLocal()
     try:
         initial_players = [
@@ -11,7 +18,7 @@ def seed_players():
             "Thibault",
             "Abas",
             "Nicolas",
-            "Andrés",
+            "Andr",
             "Sandrine",
             "Michelle",
             "Philippe",
@@ -19,10 +26,20 @@ def seed_players():
         ]
 
         for name in initial_players:
-            exists = db.query(models.Player).filter(models.Player.name == name).first()
+            exists = db.query(Player).filter(Player.name == name).first()
             if not exists:
-                db.add(models.Player(name=name))
+                db.add(Player(name=name))
 
         db.commit()
+        
+        # Seed week state
+        week_state = db.query(WeekState).first()
+        if not week_state:
+            db.add(WeekState(
+                last_reset_date=date.today(),
+                abas_immunity_added=False
+            ))
+            db.commit()
+            
     finally:
         db.close()

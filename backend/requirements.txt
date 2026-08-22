@@ -1,9 +1,25 @@
-fastapi==0.95.2
-uvicorn[standard]==0.23.1
-sqlalchemy==2.0.19
-pydantic==1.10.12
+# Coffee Game V2 Dependencies
+
+# FastAPI and dependencies
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
 python-multipart==0.0.6
-jinja2==3.1.2
-pandas==2.2.2
-openpyxl==3.1.2
-psycopg2-binary
+
+# Database
+sqlalchemy==2.0.25
+# For PostgreSQL support (optional)
+# psycopg2-binary==2.9.9
+
+# HTTP client
+httpx==0.26.0
+
+# Python dotenv
+python-dotenv==1.0.0
+
+# For development
+# python-jose[cryptography]==3.3.0
+# passlib[bcrypt]==1.7.4
+
+# For production monitoring
+# prometheus-fastapi-instrumentator==5.9.1

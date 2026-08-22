@@ -1,8 +1,46 @@
+# Render configuration for Coffee Game V2
+
 services:
   - type: web
-    name: coffee-game
-    env: docker
-    plan: free
-    dockerfilePath: Dockerfile
-    port: 8000
+    name: coffee-game-v2
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    
+    # Build settings
+    buildCommand: docker build -t coffee-game-v2 .
+    startCommand: uvicorn app.main_v2:app --host 0.0.0.0 --port 8000
+    
+    # Environment variables
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./coffee_game.db
+      - key: APP_NAME
+        value: Coffee Game V2
+      - key: APP_VERSION
+        value: 2.0.0
+      - key: DEBUG
+        value: "False"
+    
+    # Auto-deploy settings
     autoDeploy: true
+    
+    # Health check
+    healthCheckPath: /health
+    healthCheckInterval: 30
+    
+    # Region
+    region: frankfurt
+    
+    # Plan
+    plan: free
+    
+    # Domains
+    # Uncomment and configure if you have a custom domain
+    # domains:
+    #   - name: les-scores-du-cafe-v2.onrender.com
+    #     type: primary
+    
+    # Notifications
+    notifications:
+      - type: email
+        enabled: true
