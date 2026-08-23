@@ -6,9 +6,9 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     
-    # Build settings
-    buildCommand: docker build -t coffee-game-v2 .
-    startCommand: uvicorn app.main_v2:app --host 0.0.0.0 --port 8000
+    # Docker settings
+    dockerContext: .
+    dockerCommand: sh -c "uvicorn app.main_v2:app --host 0.0.0.0 --port ${PORT:-8000}"
     
     # Environment variables
     envVars:
