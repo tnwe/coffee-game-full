@@ -1,15 +1,22 @@
 """
-Database configuration for backward compatibility
+Database configuration for backward compatibility.
 """
-from app.db.session import engine, Base, SessionLocal, get_db, init_db
+from app.db.session import (
+    Base as _Base,
+    SessionLocal as _SessionLocal,
+    engine as _engine,
+    get_db as _get_db,
+    init_db as _init_db,
+)
 
-# Backward compatibility aliases
-engine = engine
-Base = Base
-SessionLocal = SessionLocal
+engine = _engine
+Base = _Base
+SessionLocal = _SessionLocal
+
 
 def get_db():
-    return get_db()
+    return _get_db()
+
 
 def init_db():
-    return init_db()
+    return _init_db()
