@@ -1,8 +1,7 @@
 """
 Application configuration settings
 """
-from pydantic import BaseSettings, AnyHttpUrl
-from typing import Optional
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
