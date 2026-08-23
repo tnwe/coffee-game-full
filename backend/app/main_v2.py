@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
+from datetime import datetime, timezone
 import logging
 
 from app.core.config import settings
@@ -131,7 +132,7 @@ def health_check():
         "status": "ok",
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
-        "timestamp": Path(__file__).resolve().parent.parent
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 
@@ -154,7 +155,14 @@ def root():
 
 # SERVE FRONTEND
 BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIST = BASE_DIR.parent / "frontend_dist"
+FRONTEND_DIST_CANDIDATES = [
+    BASE_DIR / "frontend_dist",
+    BASE_DIR.parent / "frontend_dist",
+]
+FRONTEND_DIST = next(
+    (path for path in FRONTEND_DIST_CANDIDATES if path.exists()),
+    FRONTEND_DIST_CANDIDATES[0],
+)
 
 if FRONTEND_DIST.exists():
     assets_dir = FRONTEND_DIST / "assets"

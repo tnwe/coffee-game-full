@@ -50,10 +50,10 @@ COPY --from=backend-builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy backend application from builder
-COPY --from=backend-builder /app ./app
+COPY --from=backend-builder /app/app ./app
 
 # Copy built frontend from frontend-builder
-COPY --from=frontend-builder /app/frontend/dist ./app/frontend_dist
+COPY --from=frontend-builder /app/frontend/dist ./frontend_dist
 
 # Create data directory
 RUN mkdir -p /app/data
@@ -68,7 +68,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD python -c "import httpx; httpx.get('http://localhost:8000/health', timeout=3).raise_for_status()" || exit 1
+    CMD python -c "import os, httpx; httpx.get('http://localhost:%s/health' % os.environ.get('PORT', '8000'), timeout=3).raise_for_status()" || exit 1
 
 # Start the application
-CMD ["uvicorn", "app.main_v2:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn app.main_v2:app --host 0.0.0.0 --port ${PORT:-8000}"]
