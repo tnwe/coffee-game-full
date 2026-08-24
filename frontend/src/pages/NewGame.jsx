@@ -488,30 +488,16 @@ export default function NewGame() {
 
             {/* Controls */}
             <div className="mt-6 flex flex-wrap gap-3">
-              {step === 'done' && (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={resetGame}
-                  className="btn btn-secondary gap-2"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Recommencer
-                </motion.button>
-              )}
-              
-              {step !== 'done' && (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || !payer || !fetcher}
-                  className="btn btn-primary gap-2 flex-1 sm:flex-none"
-                >
-                  <Check className="w-4 h-4" />
-                  {isSubmitting ? 'Enregistrement...' : 'Enregistrer la partie'}
-                </motion.button>
-              )}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleSubmit}
+                disabled={isSubmitting || !payer || !fetcher}
+                className="btn btn-primary gap-2 flex-1 sm:flex-none"
+              >
+                <Check className="w-4 h-4" />
+                {isSubmitting ? 'Enregistrement...' : 'Enregistrer la partie'}
+              </motion.button>
             </div>
           </motion.div>
         )}
