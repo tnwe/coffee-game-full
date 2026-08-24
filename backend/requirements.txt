@@ -9,8 +9,8 @@ python-multipart==0.0.6
 
 # Database
 sqlalchemy==2.0.25
-# For PostgreSQL support (optional)
-# psycopg2-binary==2.9.9
+# PostgreSQL driver required when DATABASE_URL uses postgresql://
+psycopg2-binary==2.9.9
 
 # HTTP client
 httpx==0.26.0
