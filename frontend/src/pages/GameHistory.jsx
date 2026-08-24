@@ -32,12 +32,11 @@ export default function GameHistory() {
   const [searchQuery, setSearchQuery] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [playerFilter, setPlayerFilter] = useState('')
-  const [doubletteFilter, setDoubletteFilter] = useState('all')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
   const [expandedGame, setExpandedGame] = useState(null)
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['games', { limit: 100, search: searchQuery, date: dateFilter, player: playerFilter, doublette: doubletteFilter }],
+    queryKey: ['games', { limit: 100 }],
     queryFn: fetchGames
   })
 
@@ -76,10 +75,7 @@ export default function GameHistory() {
       (playerFilter === '' || 
         game.payer?.name === playerFilter ||
         game.fetcher?.name === playerFilter ||
-        game.participants?.some(p => p.name === playerFilter)) &&
-      (doubletteFilter === 'all' || 
-        (doubletteFilter === 'yes' && game.is_doublette) ||
-        (doubletteFilter === 'no' && !game.is_doublette))
+        game.participants?.some(p => p.name === playerFilter))
   })
 
   const sortedGames = [...filteredGames].sort((a, b) => 
@@ -181,16 +177,6 @@ export default function GameHistory() {
             ))}
           </select>
 
-          {/* Doublette Filter */}
-          <select
-            value={doubletteFilter}
-            onChange={(e) => setDoubletteFilter(e.target.value)}
-            className="input"
-          >
-            <option value="all">Tous</option>
-            <option value="yes">Doubletes seulement</option>
-            <option value="no">Sans doubletes</option>
-          </select>
         </div>
 
         <div className="mt-4 flex items-center justify-between">
@@ -386,7 +372,7 @@ export default function GameHistory() {
               Aucune partie trouvée
             </h3>
             <p className="text-coffee-light text-sm">
-              {searchQuery || dateFilter || playerFilter || doubletteFilter !== 'all'
+              {searchQuery || dateFilter || playerFilter
                 ? 'Aucun résultat pour vos filtres' 
                 : 'Aucune partie enregistrée pour le moment'}
             </p>

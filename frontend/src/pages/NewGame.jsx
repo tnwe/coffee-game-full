@@ -58,7 +58,7 @@ export default function NewGame() {
     queryFn: fetchPlayers
   })
 
-  const { data: gamesData, isLoading: gamesLoading } = useQuery({
+  const { data: gamesData } = useQuery({
     queryKey: ['games'],
     queryFn: fetchGames
   })

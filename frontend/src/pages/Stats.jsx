@@ -17,12 +17,6 @@ const fetchStats = async () => {
   return response.json()
 }
 
-const fetchGames = async () => {
-  const response = await fetch('/api/v1/games/?limit=50')
-  if (!response.ok) throw new Error('Failed to fetch games')
-  return response.json()
-}
-
 const fetchLeaderboard = async (metric = 'score') => {
   const response = await fetch(`/api/v1/stats/leaderboard?metric=${metric}&limit=20`)
   if (!response.ok) throw new Error('Failed to fetch leaderboard')
@@ -52,17 +46,12 @@ export default function Stats() {
     queryFn: fetchStats
   })
 
-  const { data: games, isLoading: gamesLoading } = useQuery({
-    queryKey: ['games', 50],
-    queryFn: fetchGames
-  })
-
   const { data: leaderboard, isLoading: leaderboardLoading } = useQuery({
     queryKey: ['leaderboard', activeMetric],
     queryFn: () => fetchLeaderboard(activeMetric)
   })
 
-  const isLoading = statsLoading || gamesLoading || leaderboardLoading
+  const isLoading = statsLoading || leaderboardLoading
 
   // Prepare data for charts
   const playerStats = stats?.players?.map(p => ({
