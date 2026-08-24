@@ -26,4 +26,8 @@ Ce dépôt contient un `Dockerfile` prêt pour Render.
 2. Créez un **Web Service** et choisissez le build via **Docker**.
 3. Render va construire l'image en utilisant `Dockerfile` et exposer l'application sur le port **8000**.
 
+4. Dans les variables d'environnement Render, renseignez `DATABASE_URL` avec
+  l'URL de connexion PostgreSQL de Supabase. Ne remplacez pas cette variable
+  par l'URL SQLite locale `sqlite:///./coffee_game.db`.
+
 > Si vous n'avez pas Node en local (comme c'est mon cas), Render fera la compilation frontend pour vous.

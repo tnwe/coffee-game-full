@@ -10,10 +10,12 @@ services:
     dockerContext: .
     dockerCommand: sh -c "uvicorn app.main_v2:app --host 0.0.0.0 --port ${PORT:-8000}"
     
-    # Environment variables
+    # Configure DATABASE_URL in the Render dashboard with the Supabase
+    # PostgreSQL connection string. The application keeps SQLite as its
+    # local-development fallback when DATABASE_URL is not set.
     envVars:
       - key: DATABASE_URL
-        value: sqlite:///./coffee_game.db
+        sync: false
       - key: APP_NAME
         value: Coffee Game V2
       - key: APP_VERSION
