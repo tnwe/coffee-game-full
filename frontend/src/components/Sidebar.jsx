@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { 
-  Home, Plus, BarChart3, Users, History, Settings, 
+  Home, Plus, BarChart3, Users, History,
   Coffee, Trophy, Calendar, Shield, X
 } from 'lucide-react'
 
@@ -16,10 +16,6 @@ export default function Sidebar({ onClose }) {
     { path: '/stats', icon: BarChart3, label: 'Statistiques' },
     { path: '/history', icon: Calendar, label: 'Historique' },
     { path: '/players', icon: Users, label: 'Joueurs' },
-  ]
-
-  const otherLinks = [
-    { path: '/settings', icon: Settings, label: 'Paramètres' },
   ]
 
   const isActive = (path) => location.pathname === path
@@ -99,29 +95,6 @@ export default function Sidebar({ onClose }) {
           </div>
         </div>
 
-        {/* Other */}
-        <div>
-          <h3 className="px-3 text-xs font-semibold text-coffee-light uppercase tracking-wider mb-2">
-            Autres
-          </h3>
-          <div className="space-y-1">
-            {otherLinks.map(({ path, icon: Icon, label }) => (
-              <Link
-                key={path}
-                to={path}
-                onClick={onClose}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  isActive(path)
-                    ? 'bg-coffee-light text-white shadow-sm'
-                    : 'text-coffee-dark hover:bg-coffee-cream hover:text-coffee-dark'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                {label}
-              </Link>
-            ))}
-          </div>
-        </div>
       </nav>
 
       {/* Footer */}

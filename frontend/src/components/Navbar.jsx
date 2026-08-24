@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Coffee, Menu, X, Home, Plus, BarChart3, Users, History, Settings } from 'lucide-react'
+import { Coffee, Menu, Home, Plus, BarChart3, Users, History } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 export default function Navbar({ onMenuClick }) {
@@ -68,18 +68,6 @@ export default function Navbar({ onMenuClick }) {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
-            <Link 
-              to="/settings"
-              className={`hidden md:flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive('/settings')
-                  ? 'bg-coffee-light text-white shadow-sm'
-                  : 'text-coffee-dark hover:bg-coffee-cream'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              <span className="hidden lg:inline">Paramètres</span>
-            </Link>
-            
             {/* Mobile menu button */}
             <button
               onClick={onMenuClick}

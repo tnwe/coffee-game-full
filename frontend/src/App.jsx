@@ -9,7 +9,6 @@ import NewGame from './pages/NewGame'
 import Stats from './pages/Stats'
 import Players from './pages/Players'
 import GameHistory from './pages/GameHistory'
-import Settings from './pages/Settings'
 import LoadingScreen from './components/LoadingScreen'
 
 const queryClient = new QueryClient({
@@ -70,7 +69,6 @@ export default function App() {
                 <Route path="/stats" element={<Stats />} />
                 <Route path="/players" element={<Players />} />
                 <Route path="/history" element={<GameHistory />} />
-                <Route path="/settings" element={<Settings />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>

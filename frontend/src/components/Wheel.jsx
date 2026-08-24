@@ -14,14 +14,27 @@ export default function Wheel({
   const [isSpinning, setIsSpinning] = useState(false)
   const [winner, setWinner] = useState(null)
   const [rotation, setRotation] = useState(0)
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const [isSlowing, setIsSlowing] = useState(false)
   const [hasImmunity, setHasImmunity] = useState(false)
   
   const wheelRef = useRef(null)
   const timerRef = useRef(null)
   const speedRef = useRef(0)
   const slowingRef = useRef(false)
+
+  const finishSpin = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+
+    const newIndex = Math.floor(Math.random() * players.length)
+    speedRef.current = 0
+    slowingRef.current = false
+    setWinner(players[newIndex].id)
+    setIsSpinning(false)
+    if (onResult) onResult(players[newIndex])
+    if (onStop) onStop()
+  }
 
   // Clear any existing timer
   useEffect(() => {
@@ -54,7 +67,6 @@ export default function Wheel({
     if (isSpinning || disabled || players.length === 0) return
     
     setIsSpinning(true)
-    setIsSlowing(false)
     slowingRef.current = false
     setWinner(null)
     setHasImmunity(false)
@@ -71,7 +83,6 @@ export default function Wheel({
       
       // Randomly start slowing down
       if (Math.random() < 0.01 && !slowingRef.current) {
-        setIsSlowing(true)
         slowingRef.current = true
       }
       
@@ -79,14 +90,7 @@ export default function Wheel({
       if (slowingRef.current) {
         speedRef.current *= 0.95
         if (speedRef.current < 0.1) {
-          speedRef.current = 0
-          // Select winner
-          const newIndex = Math.floor(Math.random() * players.length)
-          setSelectedIndex(newIndex)
-          setWinner(players[newIndex].id)
-          if (onResult) onResult(players[newIndex])
-          setIsSpinning(false)
-          if (onStop) onStop()
+          finishSpin()
           return
         }
       }
@@ -101,8 +105,7 @@ export default function Wheel({
 
   const stopSpin = () => {
     if (!isSpinning) return
-    slowingRef.current = true
-    setIsSlowing(true)
+    finishSpin()
   }
 
   const handleKeyDown = (e) => {
