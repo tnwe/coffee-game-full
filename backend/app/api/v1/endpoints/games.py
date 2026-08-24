@@ -337,15 +337,11 @@ def build_game_detail_response(db: Session, game: Game) -> GameDetailResponse:
     """
     Helper function to build a detailed game response
     """
-    # Get participants
-    participants = db.query(GamePlayer).filter(
-        GamePlayer.game_id == game.id
-    ).all()
-    
-    # Build participant list
+    # Relationships are configured with selectin/joined loading, so reuse them
+    # instead of querying every participant and player individually.
     participant_list = []
-    for gp in participants:
-        player = db.query(Player).filter(Player.id == gp.player_id).first()
+    for participant in game.participants:
+        player = participant.player
         if player:
             participant_list.append({
                 "id": player.id,
