@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, MotionConfig } from 'framer-motion'
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
@@ -14,12 +14,6 @@ import LoadingSpinner from '../components/LoadingSpinner'
 const fetchStats = async () => {
   const response = await fetch('/api/v1/stats/')
   if (!response.ok) throw new Error('Failed to fetch stats')
-  return response.json()
-}
-
-const fetchLeaderboard = async (metric = 'score') => {
-  const response = await fetch(`/api/v1/stats/leaderboard?metric=${metric}&limit=20`)
-  if (!response.ok) throw new Error('Failed to fetch leaderboard')
   return response.json()
 }
 
@@ -38,7 +32,6 @@ const metricOptions = [
 
 export default function Stats() {
   const [activeMetric, setActiveMetric] = useState('score')
-  const [timeRange, setTimeRange] = useState('all')
   const [chartType, setChartType] = useState('bar')
 
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -46,12 +39,7 @@ export default function Stats() {
     queryFn: fetchStats
   })
 
-  const { data: leaderboard, isLoading: leaderboardLoading } = useQuery({
-    queryKey: ['leaderboard', activeMetric],
-    queryFn: () => fetchLeaderboard(activeMetric)
-  })
-
-  const isLoading = statsLoading || leaderboardLoading
+  const isLoading = statsLoading
 
   // Prepare data for charts
   const playerStats = stats?.players?.map(p => ({
@@ -69,7 +57,7 @@ export default function Stats() {
 
   // Bar chart data
   const barChartData = sortedPlayers.map(p => ({
-    name: p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name,
+    name: p.name,
     fullName: p.name,
     value: activeMetric === 'normalized_score' ? p.normalizedScore : p[activeMetric]
   }))
@@ -128,7 +116,8 @@ export default function Stats() {
   }
 
   return (
-    <div className="space-y-6">
+    <MotionConfig reducedMotion="always">
+      <div className="space-y-6">
       {/* Header */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -244,7 +233,8 @@ export default function Stats() {
         </div>
 
         {chartType === 'bar' ? (
-          <div className="h-80">
+          <div className="overflow-x-auto">
+            <div style={{ height: `${Math.max(520, barChartData.length * 34)}px`, minWidth: '640px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barChartData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#e8d5c4" strokeWidth={1} />
@@ -256,13 +246,13 @@ export default function Stats() {
                 <YAxis 
                   dataKey="name" 
                   type="category" 
-                  width={120}
+                  width={160}
                   stroke="#4a2c2a"
                   tick={{ fontSize: 12, fill: '#4a2c2a' }}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ color: '#4a2c2a' }} />
-                <Bar dataKey="value" fill="#8b4513" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="value" fill="#8b4513" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                   {barChartData.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
@@ -272,6 +262,7 @@ export default function Stats() {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+            </div>
           </div>
         ) : (
           <div className="h-80 flex items-center justify-center">
@@ -285,6 +276,7 @@ export default function Stats() {
                   outerRadius={120}
                   fill="#8884d8"
                   dataKey="value"
+                  isAnimationActive={false}
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                 >
                   {pieChartData.map((entry, index) => (
@@ -430,6 +422,7 @@ export default function Stats() {
                   strokeWidth={3}
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}
+                  isAnimationActive={false}
                 />
                 <Line 
                   type="monotone" 
@@ -439,6 +432,7 @@ export default function Stats() {
                   strokeWidth={3}
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}
+                  isAnimationActive={false}
                 />
                 <Line 
                   type="monotone" 
@@ -448,6 +442,7 @@ export default function Stats() {
                   strokeWidth={3}
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}
+                  isAnimationActive={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -562,6 +557,7 @@ export default function Stats() {
           </div>
         </div>
       </motion.div>
-    </div>
+      </div>
+    </MotionConfig>
   )
 }
