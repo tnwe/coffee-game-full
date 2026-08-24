@@ -137,7 +137,7 @@ def health_check():
 
 
 # Root endpoint
-@app.get("/", include_in_schema=False)
+@app.get("/api-info", include_in_schema=False)
 @app.get("/api", include_in_schema=False)
 @app.get("/api/v1", include_in_schema=False)
 def root():
