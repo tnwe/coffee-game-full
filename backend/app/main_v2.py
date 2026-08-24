@@ -186,6 +186,12 @@ if FRONTEND_DIST.exists():
             return FileResponse(str(index_file))
         return {"error": "index.html not found"}
 
+    @app.get("/{path:path}", include_in_schema=False)
+    def serve_frontend_route(path: str):
+        if path.startswith(("api", "assets")):
+            raise HTTPException(status_code=404, detail="Not Found")
+        return FileResponse(str(FRONTEND_DIST / "index.html"))
+
 else:
     @app.get("/", include_in_schema=False)
     def placeholder():

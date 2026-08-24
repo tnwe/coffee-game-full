@@ -167,8 +167,8 @@ export default function NewGame() {
       await createGameMutation.mutateAsync({
         date,
         players: selectedPlayerList.map(p => p.id),
-        payer: payer,
-        fetcher: fetcher
+        payer_id: payer,
+        fetcher_id: fetcher
       })
       
       // Trigger confetti

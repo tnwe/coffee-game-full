@@ -84,24 +84,6 @@ def read_games(
     )
 
 
-@router.get("/{game_id}", response_model=GameDetailResponse, summary="Get game details")
-def read_game(
-    game_id: int,
-    db: Session = Depends(get_db)
-):
-    """
-    Retrieve detailed information for a specific game.
-    """
-    game = db.query(Game).filter(Game.id == game_id).first()
-    if not game:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Game with ID {game_id} not found"
-        )
-    
-    return build_game_detail_response(db, game)
-
-
 @router.post("/", response_model=GameDetailResponse, status_code=status.HTTP_201_CREATED, summary="Create a new game")
 def create_game(
     game_data: GameCreate,
@@ -330,6 +312,24 @@ def get_today_game(
     if not game:
         return None
     
+    return build_game_detail_response(db, game)
+
+
+@router.get("/{game_id}", response_model=GameDetailResponse, summary="Get game details")
+def read_game(
+    game_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve detailed information for a specific game.
+    """
+    game = db.query(Game).filter(Game.id == game_id).first()
+    if not game:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Game with ID {game_id} not found"
+        )
+
     return build_game_detail_response(db, game)
 
 
