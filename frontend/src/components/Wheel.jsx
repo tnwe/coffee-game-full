@@ -17,95 +17,105 @@ export default function Wheel({
   const [hasImmunity, setHasImmunity] = useState(false)
   
   const wheelRef = useRef(null)
-  const timerRef = useRef(null)
-  const speedRef = useRef(0)
-  const slowingRef = useRef(false)
+  const animationRef = useRef(null)
+  const rotationRef = useRef(0)
+  const targetRotationRef = useRef(0)
+  const animationFromRef = useRef(0)
+  const animationStartRef = useRef(0)
+  const animationDurationRef = useRef(0)
+  const winnerIndexRef = useRef(0)
 
   const finishSpin = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+      animationRef.current = null
     }
 
-    const newIndex = Math.floor(Math.random() * players.length)
-    speedRef.current = 0
-    slowingRef.current = false
-    setWinner(players[newIndex].id)
+    const winnerPlayer = players[winnerIndexRef.current]
+    setRotation(targetRotationRef.current)
+    rotationRef.current = targetRotationRef.current
+    setWinner(winnerPlayer.id)
     setIsSpinning(false)
-    if (onResult) onResult(players[newIndex])
+    if (onResult) onResult(winnerPlayer)
     if (onStop) onStop()
   }
 
-  // Clear any existing timer
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
+      if (animationRef.current) cancelAnimationFrame(animationRef.current)
     }
   }, [])
 
-  // Handle immunity check
   useEffect(() => {
-    if (winner) {
-      const winnerPlayer = players.find(p => p.id === winner)
-      if (winnerPlayer && winnerPlayer.has_immunity) {
-        setHasImmunity(true)
-        // Auto-restart after immunity animation
-        const immunityTimer = setTimeout(() => {
-          setHasImmunity(false)
-          setWinner(null)
-          setIsSpinning(false)
-          if (onStop) onStop()
-        }, 2000)
-        return () => clearTimeout(immunityTimer)
-      }
-    }
+    if (!winner) return
+
+    const winnerPlayer = players.find(player => player.id === winner)
+    if (!winnerPlayer?.has_immunity) return
+
+    setHasImmunity(true)
+    const immunityTimer = setTimeout(() => {
+      setHasImmunity(false)
+      setWinner(null)
+      setIsSpinning(false)
+      if (onStop) onStop()
+    }, 2000)
+
+    return () => clearTimeout(immunityTimer)
   }, [winner, players, onStop])
 
   const startSpin = () => {
     if (isSpinning || disabled || players.length === 0) return
-    
+
+    const winnerIndex = Math.floor(Math.random() * players.length)
+    const sliceSize = 360 / players.length
+    const targetOffset = (360 - (winnerIndex * sliceSize + sliceSize / 2)) % 360
+
+    winnerIndexRef.current = winnerIndex
+    rotationRef.current = 0
+    targetRotationRef.current = 360 * 6 + targetOffset
+    animationFromRef.current = 0
+    animationStartRef.current = performance.now()
+    animationDurationRef.current = 4500
     setIsSpinning(true)
-    slowingRef.current = false
     setWinner(null)
     setHasImmunity(false)
     setRotation(0)
-    speedRef.current = 0
-    
     if (onStart) onStart()
-    
-    const spin = () => {
-      // Accelerate
-      if (speedRef.current < 30) {
-        speedRef.current += 0.5
+
+    const spin = (timestamp) => {
+      const progress = Math.min(
+        (timestamp - animationStartRef.current) / animationDurationRef.current,
+        1
+      )
+      const easedProgress = 1 - Math.pow(1 - progress, 3)
+      const nextRotation = animationFromRef.current + (
+        targetRotationRef.current - animationFromRef.current
+      ) * easedProgress
+
+      rotationRef.current = nextRotation
+      setRotation(nextRotation)
+
+      if (progress >= 1) {
+        finishSpin()
+      } else {
+        animationRef.current = requestAnimationFrame(spin)
       }
-      
-      // Randomly start slowing down
-      if (Math.random() < 0.01 && !slowingRef.current) {
-        slowingRef.current = true
-      }
-      
-      // Slow down
-      if (slowingRef.current) {
-        speedRef.current *= 0.95
-        if (speedRef.current < 0.1) {
-          finishSpin()
-          return
-        }
-      }
-      
-      // Update rotation
-      setRotation(prev => prev + speedRef.current)
-      timerRef.current = setTimeout(spin, 16)
     }
-    
-    spin()
+
+    animationRef.current = requestAnimationFrame(spin)
   }
 
   const stopSpin = () => {
     if (!isSpinning) return
-    finishSpin()
+
+    animationFromRef.current = rotationRef.current
+    const currentAngle = rotationRef.current % 360
+    const sliceSize = 360 / players.length
+    const targetOffset = (360 - (winnerIndexRef.current * sliceSize + sliceSize / 2)) % 360
+    const remainingAngle = (targetOffset - currentAngle + 360) % 360
+    targetRotationRef.current = rotationRef.current + 360 * 2 + remainingAngle
+    animationStartRef.current = performance.now()
+    animationDurationRef.current = 1200
   }
 
   const handleKeyDown = (e) => {
