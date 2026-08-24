@@ -172,7 +172,11 @@ export default function Wheel({
             background: `conic-gradient(
               from 0deg at 50% 50%,
               ${players.map((_, i) => {
-                const colors = ['#d97706', '#ea580c', '#dc2626', '#db2777', '#9333ea']
+                const colors = [
+                  '#3b2116', '#4a2b1c', '#5a351f', '#6b4025', '#7b4b2b',
+                  '#8c5833', '#9d6740', '#ae764e', '#bf8960', '#d1a17b',
+                  '#e1bfa0', '#edd9c2'
+                ]
                 return `${colors[i % colors.length]} ${(i * (360 / players.length))}deg ${((i + 1) * (360 / players.length))}deg`
               }).join(', ')}
             )`
@@ -187,9 +191,10 @@ export default function Wheel({
             return (
               <motion.span
                 key={player.id}
-                className="absolute left-1/2 top-1/2 z-[1] max-w-[32%] -translate-x-1/2 -translate-y-1/2 truncate text-center text-xs font-bold text-white drop-shadow-md md:text-sm"
+                className="absolute left-1/2 top-1/2 z-[1] max-w-[28%] -translate-x-1/2 -translate-y-1/2 truncate text-center text-xs font-bold text-white drop-shadow-md md:text-sm"
                 style={{
-                  transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(clamp(-86px, -30%, -62px)) rotate(${-angle - rotation}deg)`,
+                  transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(clamp(-112px, -42%, -78px)) rotate(${-angle - rotation}deg)`,
+                  color: index >= 10 ? '#3b2116' : '#ffffff',
                 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -231,7 +236,7 @@ export default function Wheel({
 
         {/* Fixed pointer: it must not be a child of the rotating wheel. */}
         <div className="absolute top-0 left-1/2 z-30 -translate-x-1/2 -translate-y-1/2">
-          <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-b-[20px] border-b-coffee-dark" />
+          <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[20px] border-t-coffee-dark" />
         </div>
 
         {/* Winner overlay */}
