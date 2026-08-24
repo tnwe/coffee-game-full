@@ -1,9 +1,6 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Calendar, Clock, Users, Crown, Shield, Search, Filter, 
-  Eye, Trash2, Pencil, X, Download
-} from 'lucide-react'
+import { Calendar, Clock, Users, Crown, Shield, Eye, Trash2, X } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -11,10 +8,8 @@ import toast from 'react-hot-toast'
 import LoadingSpinner from '../components/LoadingSpinner'
 import clsx from 'clsx'
 
-const fetchGames = async ({ queryKey }) => {
-  const [, params] = queryKey
-  const queryString = new URLSearchParams(params).toString()
-  const response = await fetch(`/api/v1/games/?${queryString}`)
+const fetchGames = async () => {
+  const response = await fetch('/api/v1/games/?limit=100')
   if (!response.ok) throw new Error('Failed to fetch games')
   return response.json()
 }
@@ -29,14 +24,11 @@ const deleteGame = async (gameId) => {
 
 export default function GameHistory() {
   const queryClient = useQueryClient()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [dateFilter, setDateFilter] = useState('')
-  const [playerFilter, setPlayerFilter] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
   const [expandedGame, setExpandedGame] = useState(null)
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['games', { limit: 100 }],
+    queryKey: ['games', 'history'],
     queryFn: fetchGames
   })
 
@@ -53,32 +45,8 @@ export default function GameHistory() {
   })
 
   const games = data?.games || []
-  const total = data?.total || 0
 
-  // Get unique players for filter
-  const allPlayers = Array.from(new Set(
-    games.flatMap(g => [
-      g.payer?.name,
-      g.fetcher?.name,
-      ...(g.participants || []).map(p => p.name)
-    ]).filter(Boolean)
-  ))
-
-  // Filter games client-side for better UX
-  const filteredGames = games.filter(game => {
-    const matchesSearch = 
-      (game.payer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      game.fetcher?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      game.participants?.some(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      game.date.includes(searchQuery)) &&
-      (dateFilter === '' || game.date === dateFilter) &&
-      (playerFilter === '' || 
-        game.payer?.name === playerFilter ||
-        game.fetcher?.name === playerFilter ||
-        game.participants?.some(p => p.name === playerFilter))
-  })
-
-  const sortedGames = [...filteredGames].sort((a, b) => 
+  const sortedGames = [...games].sort((a, b) =>
     new Date(b.date) - new Date(a.date)
   )
 
@@ -126,63 +94,6 @@ export default function GameHistory() {
         <div>
           <h1 className="text-2xl font-bold text-coffee-dark">Historique des parties</h1>
           <p className="text-coffee-light mt-1">Consultez et gérez toutes les parties jouées</p>
-        </div>
-      </motion.div>
-
-      {/* Filters */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="card p-6"
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-coffee-light" />
-            <input
-              type="text"
-              placeholder="Rechercher..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="input pl-10"
-            />
-          </div>
-
-          {/* Date Filter */}
-          <select
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="input"
-          >
-            <option value="">Toutes les dates</option>
-            {Array.from(new Set(games.map(g => g.date)))
-              .sort((a, b) => new Date(b) - new Date(a))
-              .map(date => (
-                <option key={date} value={date}>
-                  {formatShortDate(date)}
-                </option>
-              ))}
-          </select>
-
-          {/* Player Filter */}
-          <select
-            value={playerFilter}
-            onChange={(e) => setPlayerFilter(e.target.value)}
-            className="input"
-          >
-            <option value="">Tous les joueurs</option>
-            {allPlayers.sort().map(player => (
-              <option key={player} value={player}>{player}</option>
-            ))}
-          </select>
-
-        </div>
-
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-coffee-light">
-            {filteredGames.length} parties sur {total} au total
-          </p>
         </div>
       </motion.div>
 
@@ -372,9 +283,7 @@ export default function GameHistory() {
               Aucune partie trouvée
             </h3>
             <p className="text-coffee-light text-sm">
-              {searchQuery || dateFilter || playerFilter
-                ? 'Aucun résultat pour vos filtres' 
-                : 'Aucune partie enregistrée pour le moment'}
+              Aucune partie enregistrée pour le moment
             </p>
           </motion.div>
         )}
