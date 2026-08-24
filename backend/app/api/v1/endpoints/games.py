@@ -353,10 +353,19 @@ def build_game_detail_response(db: Session, game: Game) -> GameDetailResponse:
                 "has_immunity": player.has_immunity
             })
     
-    # Build response
-    response = GameDetailResponse.from_orm(game)
-    response.participant_count = game.participant_count
-    response.is_doublette = game.is_doublette
+    # Build the response explicitly so legacy rows with NULL timestamps remain
+    # readable after migrating from the original schema.
+    response = GameDetailResponse(
+        id=game.id,
+        date=game.date,
+        payer_id=game.payer_id,
+        fetcher_id=game.fetcher_id,
+        notes=game.notes,
+        created_at=game.created_at,
+        updated_at=game.updated_at,
+        participant_count=game.participant_count,
+        is_doublette=game.is_doublette,
+    )
     
     # Add payer info
     if game.payer:

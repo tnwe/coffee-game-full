@@ -26,10 +26,9 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
-    // Simulate loading (in production, check auth/initial data)
     const timer = setTimeout(() => {
       setIsLoading(false)
-    }, 1500)
+    }, 300)
     return () => clearTimeout(timer)
   }, [])
 
@@ -64,7 +63,7 @@ export default function App() {
             )}
 
             {/* Main content */}
-            <main className="flex-1 lg:ml-64 p-4 md:p-6 lg:p-8">
+            <main className="flex-1 lg:ml-64 p-4 pt-24 md:p-6 md:pt-28 lg:p-8 lg:pt-24">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/new-game" element={<NewGame />} />

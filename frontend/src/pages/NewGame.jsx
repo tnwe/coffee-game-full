@@ -187,13 +187,7 @@ export default function NewGame() {
     }
   }, [payer, fetcher])
 
-  const renderName = (name) => {
-    if (name === 'Experto') return `${name} 🎨`
-    if (name === 'Abas') return `${name} 👑`
-    return name
-  }
-
-  if (playersLoading || gamesLoading) {
+  if (playersLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <LoadingSpinner size="lg" />
@@ -359,7 +353,7 @@ export default function NewGame() {
                   </div>
                   <div>
                     <p className="font-medium text-coffee-dark group-hover:text-coffee-dark/80">
-                      {renderName(player.name)}
+                      {player.name}
                     </p>
                     <p className="text-xs text-coffee-light">
                       Score: {player.score || 0}
@@ -571,7 +565,7 @@ export default function NewGame() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-coffee-dark truncate">
-                          {renderName(player.name)}
+                          {player.name}
                         </p>
                         <p className="text-xs text-coffee-light">
                           Score: {player.score || 0}

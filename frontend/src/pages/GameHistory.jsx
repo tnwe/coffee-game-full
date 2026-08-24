@@ -257,7 +257,6 @@ export default function GameHistory() {
 
                       {/* Payer */}
                       <div className="hidden md:flex items-center gap-2">
-                        <Crown className="w-5 h-5 text-amber-500" />
                         <span className="font-medium text-coffee-dark">
                           {game.payer?.name || '?'}
                         </span>
@@ -265,7 +264,6 @@ export default function GameHistory() {
 
                       {/* Fetcher */}
                       <div className="hidden lg:flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-blue-500" />
                         <span className="font-medium text-coffee-dark">
                           {game.fetcher?.name || '?'}
                         </span>
@@ -338,7 +336,6 @@ export default function GameHistory() {
                                   className="badge badge-coffee text-sm"
                                 >
                                   {p.name}
-                                  {p.has_immunity && ' 🛡️'}
                                 </span>
                               ))}
                             </div>

@@ -160,12 +160,6 @@ export default function Players() {
     }
   }, [editingPlayer, editName, queryClient])
 
-  const renderName = (name) => {
-    if (name === 'Experto') return `${name} 🎨`
-    if (name === 'Abas') return `${name} 👑`
-    return name
-  }
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -294,7 +288,7 @@ export default function Players() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-coffee-dark truncate">
-                      {renderName(player.name)}
+                      {player.name}
                     </h3>
                     <div className="flex flex-wrap gap-3 mt-1">
                       <span className="text-sm text-coffee-light">

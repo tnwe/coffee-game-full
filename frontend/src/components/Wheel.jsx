@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Coffee, Shield, Target, Crown } from 'lucide-react'
+import { Coffee, Shield, Target, Crown, Loader2 } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function Wheel({
@@ -21,6 +21,7 @@ export default function Wheel({
   const wheelRef = useRef(null)
   const timerRef = useRef(null)
   const speedRef = useRef(0)
+  const slowingRef = useRef(false)
 
   // Clear any existing timer
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function Wheel({
     
     setIsSpinning(true)
     setIsSlowing(false)
+    slowingRef.current = false
     setWinner(null)
     setHasImmunity(false)
     setRotation(0)
@@ -68,12 +70,13 @@ export default function Wheel({
       }
       
       // Randomly start slowing down
-      if (Math.random() < 0.01 && !isSlowing) {
+      if (Math.random() < 0.01 && !slowingRef.current) {
         setIsSlowing(true)
+        slowingRef.current = true
       }
       
       // Slow down
-      if (isSlowing) {
+      if (slowingRef.current) {
         speedRef.current *= 0.95
         if (speedRef.current < 0.1) {
           speedRef.current = 0
@@ -98,6 +101,7 @@ export default function Wheel({
 
   const stopSpin = () => {
     if (!isSpinning) return
+    slowingRef.current = true
     setIsSlowing(true)
   }
 
@@ -150,58 +154,36 @@ export default function Wheel({
       >
         {/* Wheel */}
         <motion.div 
-          className="absolute inset-0 rounded-full border-8 border-coffee-dark/20 shadow-inner"
+          className="absolute inset-0 rounded-full border-8 border-coffee-dark/20 shadow-inner overflow-visible"
           style={{
             background: `conic-gradient(
               from 0deg at 50% 50%,
-              ${players.map((_, i) => `var(--color-${i % 5}) ${(i * (360 / players.length))}deg ${((i + 1) * (360 / players.length))}deg`).join(', ')}
+              ${players.map((_, i) => {
+                const colors = ['#d97706', '#ea580c', '#dc2626', '#db2777', '#9333ea']
+                return `${colors[i % colors.length]} ${(i * (360 / players.length))}deg ${((i + 1) * (360 / players.length))}deg`
+              }).join(', ')}
             )`
           }}
           animate={{ rotate: rotation }}
           transition={{ ease: 'easeOut' }}
         >
-          {/* Wheel segments */}
+          {/* Labels stay centered on their segment while the wheel rotates. */}
           {players.map((player, index) => {
             const angle = (index / players.length) * 360
-            const colorIndex = index % 5
-            const colors = [
-              'from-amber-600 to-orange-700',
-              'from-orange-600 to-red-700',
-              'from-red-600 to-pink-700',
-              'from-pink-600 to-purple-700',
-              'from-purple-600 to-amber-700'
-            ]
-            
+
             return (
-              <motion.div
+              <motion.span
                 key={player.id}
-                className={`absolute left-0 top-0 w-1/2 h-1/2 origin-bottom-left`}
+                className="absolute left-1/2 top-1/2 z-[1] max-w-[38%] -translate-x-1/2 -translate-y-1/2 truncate text-center text-xs font-bold text-white drop-shadow-md md:text-sm"
                 style={{
-                  transform: `rotate(${angle}deg)`,
-                  transformOrigin: 'bottom left'
+                  transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(clamp(-118px, -34%, -78px)) rotate(${-angle}deg)`,
                 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <div 
-                  className={`w-full h-full bg-gradient-to-br ${colors[colorIndex]} flex items-center justify-end pr-4`}
-                  style={{
-                    clipPath: `polygon(0 0, 100% 0, 100% 100%, calc(50% + 2px) calc(50% + 2px), 0 calc(50% + 2px))`
-                  }}
-                >
-                  <motion.span 
-                    className="text-white font-bold text-xs md:text-sm drop-shadow-md"
-                    style={{
-                      transform: `rotate(${angle > 180 ? 180 : 0}deg)`,
-                      transformOrigin: 'right center'
-                    }}
-                  >
-                    {player.name}
-                    {player.has_immunity && ' 🛡️'}
-                  </motion.span>
-                </div>
-              </motion.div>
+                {player.name}
+              </motion.span>
             )
           })}
 
