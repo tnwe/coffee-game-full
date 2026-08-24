@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Users, Plus, Search, Crown, Shield, TrendingUp, 
+  Users, Plus, Search, CreditCard, HandPlatter, TrendingUp,
   Pencil, Trash2, Eye, ShieldCheck, ShieldX, Filter
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -292,10 +292,10 @@ export default function Players() {
                     </h3>
                     <div className="flex flex-wrap gap-3 mt-1">
                       <span className="text-sm text-coffee-light">
-                        <Crown className="w-3 h-3 inline" /> {player.total_paid || 0}
+                        <CreditCard className="w-3 h-3 inline" /> {player.total_paid || 0}
                       </span>
                       <span className="text-sm text-coffee-light">
-                        <Shield className="w-3 h-3 inline" /> {player.total_fetched || 0}
+                        <HandPlatter className="w-3 h-3 inline" /> {player.total_fetched || 0}
                       </span>
                       <span className="text-sm text-coffee-light">
                         <Users className="w-3 h-3 inline" /> {player.total_participations || 0}

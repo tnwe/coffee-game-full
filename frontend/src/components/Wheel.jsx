@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Coffee, Shield, Target, Crown, Loader2 } from 'lucide-react'
+import { Coffee, Shield, Target, CreditCard, HandPlatter, Loader2 } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function Wheel({
@@ -208,7 +208,7 @@ export default function Wheel({
                   {hasImmunity ? (
                     <Shield className="w-8 h-8 text-red-500 mx-auto animate-shake" />
                   ) : (
-                    <Crown className="w-8 h-8 text-amber-500 mx-auto" />
+                    <CreditCard className="w-8 h-8 text-amber-500 mx-auto" />
                   )}
                 </motion.div>
               ) : (
@@ -239,7 +239,7 @@ export default function Wheel({
                 exit={{ scale: 0.8, opacity: 0 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 500 }}
               >
-                <Crown className="w-10 h-10 text-amber-500 mx-auto mb-3 animate-bounce" />
+                <CreditCard className="w-10 h-10 text-amber-500 mx-auto mb-3 animate-bounce" />
                 <h4 className="font-bold text-coffee-dark text-lg">Gagnant !</h4>
                 <p className="text-coffee-light mt-1">{displayName}</p>
               </motion.div>
@@ -263,7 +263,7 @@ export default function Wheel({
                 animate="visible"
                 exit="exit"
               >
-                <Shield className="w-10 h-10 text-red-500 mx-auto mb-3" />
+                <HandPlatter className="w-10 h-10 text-blue-500 mx-auto mb-3" />
                 <h4 className="font-bold text-coffee-dark text-lg">Immunité !</h4>
                 <p className="text-coffee-light mt-1">{displayName}</p>
                 <p className="text-xs text-coffee-light/70 mt-2">Nouveau tirage...</p>

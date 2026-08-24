@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { 
-  Coffee, Users, Calendar, TrendingUp, Crown, Shield, 
-  ArrowRight, Play, Trophy, Clock, Plus
+  Coffee, Users, Calendar, TrendingUp, CreditCard, HandPlatter, Trophy,
+  ArrowRight, Play, Clock, Plus
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import StatCard from '../components/StatCard'
@@ -209,7 +209,7 @@ export default function Dashboard() {
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-coffee-dark flex items-center gap-2">
-              <Crown className="w-5 h-5 text-amber-500" />
+              <CreditCard className="w-5 h-5 text-amber-500" />
               Top Payeurs
             </h3>
             <Link to="/stats" className="text-sm text-coffee-light hover:text-coffee-dark flex items-center gap-1">
@@ -243,7 +243,7 @@ export default function Dashboard() {
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-coffee-dark flex items-center gap-2">
-              <Shield className="w-5 h-5 text-blue-500" />
+              <HandPlatter className="w-5 h-5 text-blue-500" />
               Top Chercheurs
             </h3>
             <Link to="/stats" className="text-sm text-coffee-light hover:text-coffee-dark flex items-center gap-1">

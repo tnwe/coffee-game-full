@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Coffee, Users, Crown, Shield, Check, X, Plus, Minus, 
+  Coffee, Users, CreditCard, HandPlatter, Check, X, Plus, Minus,
   Shuffle, Target, Calendar, Clock, Play, RotateCcw
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -365,12 +365,12 @@ export default function NewGame() {
                 <div className="mt-2 flex gap-1">
                   {isPayer && (
                     <span className="badge badge-success text-xs">
-                      <Crown className="w-3 h-3" /> Payeur
+                      <CreditCard className="w-3 h-3" /> Payeur
                     </span>
                   )}
                   {isFetcher && (
                     <span className="badge badge-info text-xs">
-                      <Shield className="w-3 h-3" /> Chercheur
+                      <HandPlatter className="w-3 h-3" /> Chercheur
                     </span>
                   )}
                   {hasImmunity && !wasImmunityUsed && (
@@ -442,7 +442,7 @@ export default function NewGame() {
                       animate={{ opacity: 1, x: 0 }}
                       className="flex items-center gap-3 p-4 bg-emerald-50/50 border border-emerald-200 rounded-xl"
                     >
-                      <Crown className="w-6 h-6 text-emerald-600" />
+                      <CreditCard className="w-6 h-6 text-emerald-600" />
                       <div>
                         <p className="font-medium text-coffee-dark">Payeur</p>
                         <p className="text-coffee-dark font-bold">
@@ -458,7 +458,7 @@ export default function NewGame() {
                       animate={{ opacity: 1, x: 0 }}
                       className="flex items-center gap-3 p-4 bg-blue-50/50 border border-blue-200 rounded-xl"
                     >
-                      <Shield className="w-6 h-6 text-blue-600" />
+                      <HandPlatter className="w-6 h-6 text-blue-600" />
                       <div>
                         <p className="font-medium text-coffee-dark">Chercheur</p>
                         <p className="text-coffee-dark font-bold">
@@ -476,8 +476,8 @@ export default function NewGame() {
                       className="p-4 bg-amber-50/50 border border-amber-200 rounded-xl text-center"
                     >
                       <p className="font-bold text-amber-600 flex items-center justify-center gap-2">
-                        <Crown className="w-5 h-5" />
-                        <Shield className="w-5 h-5" />
+                        <CreditCard className="w-5 h-5" />
+                        <HandPlatter className="w-5 h-5" />
                         Doublette !
                       </p>
                     </motion.div>
@@ -583,7 +583,7 @@ export default function NewGame() {
                             : 'btn-secondary'
                         )}
                       >
-                        <Crown className="w-3 h-3" />
+                        <CreditCard className="w-3 h-3" />
                         {isPayerSelected ? 'Payeur' : 'Choisir'}
                       </button>
                       <button
@@ -595,7 +595,7 @@ export default function NewGame() {
                             : 'btn-secondary'
                         )}
                       >
-                        <Shield className="w-3 h-3" />
+                        <HandPlatter className="w-3 h-3" />
                         {isFetcherSelected ? 'Chercheur' : 'Choisir'}
                       </button>
                     </div>
@@ -617,7 +617,7 @@ export default function NewGame() {
                   <div className="flex flex-wrap gap-3">
                     {payer && (
                       <div className="flex items-center gap-2">
-                        <Crown className="w-5 h-5 text-amber-500" />
+                        <CreditCard className="w-5 h-5 text-amber-500" />
                         <span className="font-medium text-coffee-dark">
                           Payeur: {players.find(p => p.id === payer)?.name}
                         </span>
@@ -625,7 +625,7 @@ export default function NewGame() {
                     )}
                     {fetcher && (
                       <div className="flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-blue-500" />
+                        <HandPlatter className="w-5 h-5 text-blue-500" />
                         <span className="font-medium text-coffee-dark">
                           Chercheur: {players.find(p => p.id === fetcher)?.name}
                         </span>

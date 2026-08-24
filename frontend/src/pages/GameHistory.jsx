@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Clock, Users, Crown, Shield, Eye, Trash2, X } from 'lucide-react'
+import { Calendar, Clock, Users, CreditCard, HandPlatter, Eye, Trash2, X } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -240,7 +240,7 @@ export default function GameHistory() {
 
                           {/* Payer */}
                           <div className="flex items-center gap-3">
-                            <Crown className="w-5 h-5 text-amber-500" />
+                            <CreditCard className="w-5 h-5 text-amber-500" />
                             <div>
                               <p className="text-sm text-coffee-light">Payeur</p>
                               <p className="font-medium text-coffee-dark">{game.payer?.name || 'Non spécifié'}</p>
@@ -249,7 +249,7 @@ export default function GameHistory() {
 
                           {/* Fetcher */}
                           <div className="flex items-center gap-3">
-                            <Shield className="w-5 h-5 text-blue-500" />
+                            <HandPlatter className="w-5 h-5 text-blue-500" />
                             <div>
                               <p className="text-sm text-coffee-light">Chercheur</p>
                               <p className="font-medium text-coffee-dark">{game.fetcher?.name || 'Non spécifié'}</p>

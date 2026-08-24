@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { 
   Home, Plus, BarChart3, Users, History,
-  Coffee, Trophy, Calendar, Shield, X
+  Coffee, Trophy, Calendar, X
 } from 'lucide-react'
 
 export default function Sidebar({ onClose }) {

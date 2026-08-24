@@ -5,7 +5,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
 } from 'recharts'
 import { 
-  BarChart3, Users, Crown, Shield, Trophy, Calendar, TrendingUp, 
+  BarChart3, Users, CreditCard, HandPlatter, Trophy, Calendar, TrendingUp,
   Filter, Download, ArrowUp, ArrowDown
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -324,10 +324,10 @@ export default function Stats() {
                   Joueur
                 </th>
                 <th className="p-3 text-center text-xs font-semibold text-coffee-light uppercase tracking-wider">
-                  <Crown className="w-4 h-4 inline" /> Payé
+                  <CreditCard className="w-4 h-4 inline" /> Payé
                 </th>
                 <th className="p-3 text-center text-xs font-semibold text-coffee-light uppercase tracking-wider">
-                  <Shield className="w-4 h-4 inline" /> Cherché
+                  <HandPlatter className="w-4 h-4 inline" /> Cherché
                 </th>
                 <th className="p-3 text-center text-xs font-semibold text-coffee-light uppercase tracking-wider">
                   <Users className="w-4 h-4 inline" /> Participations
@@ -463,7 +463,7 @@ export default function Stats() {
       >
         <div className="card p-6">
           <h4 className="font-semibold text-coffee-dark mb-4 flex items-center gap-2">
-            <Crown className="w-5 h-5 text-amber-500" />
+            <CreditCard className="w-5 h-5 text-amber-500" />
             Top Payeurs
           </h4>
           <div className="space-y-3">
@@ -487,7 +487,7 @@ export default function Stats() {
 
         <div className="card p-6">
           <h4 className="font-semibold text-coffee-dark mb-4 flex items-center gap-2">
-            <Shield className="w-5 h-5 text-blue-500" />
+            <HandPlatter className="w-5 h-5 text-blue-500" />
             Top Chercheurs
           </h4>
           <div className="space-y-3">

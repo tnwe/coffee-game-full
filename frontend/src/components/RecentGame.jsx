@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Calendar, Users } from 'lucide-react'
+import { Calendar, Users, CreditCard, HandPlatter } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -47,6 +47,7 @@ export default function RecentGame({ game, index }) {
 
       {/* Payer */}
       <div className="flex items-center gap-2">
+        <CreditCard className="w-5 h-5 text-amber-500" />
         <span className="font-medium text-coffee-dark">
           {game.payer?.name || '?'}
         </span>
@@ -54,6 +55,7 @@ export default function RecentGame({ game, index }) {
 
       {/* Fetcher */}
       <div className="flex items-center gap-2">
+        <HandPlatter className="w-5 h-5 text-blue-500" />
         <span className="font-medium text-coffee-dark">
           {game.fetcher?.name || '?'}
         </span>
