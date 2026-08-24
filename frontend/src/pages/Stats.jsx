@@ -5,7 +5,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
 } from 'recharts'
 import { 
-  BarChart3, Users, Crown, Shield, Calendar, TrendingUp, 
+  BarChart3, Users, Crown, Shield, Trophy, Calendar, TrendingUp, 
   Filter, Download, ArrowUp, ArrowDown
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
