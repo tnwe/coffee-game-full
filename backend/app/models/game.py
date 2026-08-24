@@ -75,7 +75,7 @@ class GamePlayer(Base):
     
     # Relationships
     game = relationship("Game", back_populates="participants")
-    player = relationship("Player", back_populates="participations")
+    player = relationship("Player", back_populates="participations", lazy="selectin")
     
     def __repr__(self):
         return f"<GamePlayer(game_id={self.game_id}, player_id={self.player_id})>"
