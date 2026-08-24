@@ -3,7 +3,7 @@ Schemas for backward compatibility
 """
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import date, datetime
+from datetime import date as DateType, datetime
 
 
 class PlayerBase(BaseModel):
@@ -28,7 +28,7 @@ class Player(PlayerBase):
 
 
 class GameBase(BaseModel):
-    date: date
+    date: DateType
     payer_id: Optional[int] = None
     fetcher_id: Optional[int] = None
 
