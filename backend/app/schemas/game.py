@@ -22,8 +22,8 @@ class GameCreate(GameBase):
 class GameResponse(GameBase):
     """Schema for game response"""
     id: int
-    created_at: datetime
-    updated_at: Optional[datetime]
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     is_doublette: bool = False
     participant_count: int = 0
     

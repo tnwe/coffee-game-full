@@ -26,7 +26,7 @@ class PlayerResponse(PlayerBase):
     """Schema for player response"""
     id: int
     has_immunity: bool
-    created_at: datetime
+    created_at: Optional[datetime] = None
     updated_at: Optional[datetime]
     total_paid: int = 0
     total_fetched: int = 0

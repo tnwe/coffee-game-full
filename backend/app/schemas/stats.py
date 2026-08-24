@@ -19,6 +19,18 @@ class PlayerStatsResponse(BaseModel):
     coffees_paid_for: int = 0
 
 
+class TopCountResponse(BaseModel):
+    """A named ranking entry with an integer count."""
+    name: str
+    count: int
+
+
+class TopScoreResponse(BaseModel):
+    """A named ranking entry with a numeric score."""
+    name: str
+    score: float
+
+
 class StatsResponse(BaseModel):
     """Overall statistics response"""
     total_games: int = 0
@@ -31,10 +43,10 @@ class StatsResponse(BaseModel):
     players: List[PlayerStatsResponse] = []
     
     # Top performers
-    top_payers: List[Dict[str, int]] = []
-    top_fetchers: List[Dict[str, int]] = []
-    top_participants: List[Dict[str, int]] = []
-    top_scores: List[Dict[str, float]] = []
+    top_payers: List[TopCountResponse] = []
+    top_fetchers: List[TopCountResponse] = []
+    top_participants: List[TopCountResponse] = []
+    top_scores: List[TopScoreResponse] = []
     
     # Recent games
     recent_games: List[Dict] = []
