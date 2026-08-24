@@ -1,13 +1,15 @@
 """
 Main application entry point for Coffee Game V2
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 from datetime import datetime, timezone
 import logging
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
 from app.db.session import engine, Base, init_db
@@ -126,12 +128,20 @@ def shutdown_event():
 @app.get("/api/v1/health", summary="API V1 Health check")
 def health_check():
     """
-    Check if the API is running correctly.
+    Check if the API and database are running correctly.
     """
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except SQLAlchemyError as error:
+        logger.exception("Database health check failed")
+        raise HTTPException(status_code=503, detail="Database unavailable") from error
+
     return {
         "status": "ok",
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "database": "ok",
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
