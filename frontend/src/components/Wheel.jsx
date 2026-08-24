@@ -180,16 +180,16 @@ export default function Wheel({
           animate={{ rotate: rotation }}
           transition={{ ease: 'easeOut' }}
         >
-          {/* Labels stay centered on their segment while the wheel rotates. */}
+          {/* Each label sits at its sector midpoint and counter-rotates with the wheel. */}
           {players.map((player, index) => {
-            const angle = (index / players.length) * 360
+            const angle = (index + 0.5) * (360 / players.length)
 
             return (
               <motion.span
                 key={player.id}
-                className="absolute left-1/2 top-1/2 z-[1] max-w-[38%] -translate-x-1/2 -translate-y-1/2 truncate text-center text-xs font-bold text-white drop-shadow-md md:text-sm"
+                className="absolute left-1/2 top-1/2 z-[1] max-w-[32%] -translate-x-1/2 -translate-y-1/2 truncate text-center text-xs font-bold text-white drop-shadow-md md:text-sm"
                 style={{
-                  transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(clamp(-118px, -34%, -78px)) rotate(${-angle}deg)`,
+                  transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(clamp(-86px, -30%, -62px)) rotate(${-angle - rotation}deg)`,
                 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -227,11 +227,12 @@ export default function Wheel({
             </motion.div>
           </div>
 
-          {/* Pointer */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-b-[20px] border-b-coffee-dark" />
-          </div>
         </motion.div>
+
+        {/* Fixed pointer: it must not be a child of the rotating wheel. */}
+        <div className="absolute top-0 left-1/2 z-30 -translate-x-1/2 -translate-y-1/2">
+          <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-b-[20px] border-b-coffee-dark" />
+        </div>
 
         {/* Winner overlay */}
         <AnimatePresence>
