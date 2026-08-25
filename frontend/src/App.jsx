@@ -62,7 +62,7 @@ export default function App() {
             )}
 
             {/* Main content */}
-            <main className="flex-1 lg:ml-64 p-4 pt-24 md:p-6 md:pt-28 lg:p-8 lg:pt-24">
+            <main className="min-w-0 w-full max-w-full flex-1 lg:ml-64 p-4 pt-24 md:p-6 md:pt-28 lg:p-8 lg:pt-24">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/new-game" element={<NewGame />} />

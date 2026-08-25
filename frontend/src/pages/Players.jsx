@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Users, Plus, Search, CreditCard, HandPlatter, TrendingUp,
-  Pencil, Trash2, Eye, ShieldCheck, ShieldX, Filter
+  Users, Plus, CreditCard, HandPlatter, TrendingUp,
+  Pencil, ShieldCheck, ShieldX, X
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -25,14 +25,6 @@ const createPlayer = async (name) => {
   return response.json()
 }
 
-const deletePlayer = async (playerId) => {
-  const response = await fetch(`/api/v1/players/${playerId}`, {
-    method: 'DELETE'
-  })
-  if (!response.ok) throw new Error('Failed to delete player')
-  return true
-}
-
 const toggleImmunity = async (playerId) => {
   const response = await fetch(`/api/v1/players/${playerId}/toggle-immunity`, {
     method: 'POST'
@@ -43,12 +35,9 @@ const toggleImmunity = async (playerId) => {
 
 export default function Players() {
   const queryClient = useQueryClient()
-  const [searchQuery, setSearchQuery] = useState('')
   const [newPlayerName, setNewPlayerName] = useState('')
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [editName, setEditName] = useState('')
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
-  const [filter, setFilter] = useState('all') // 'all', 'active', 'inactive', 'immune'
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['players'],
@@ -67,18 +56,6 @@ export default function Players() {
     }
   })
 
-  const deletePlayerMutation = useMutation({
-    mutationFn: deletePlayer,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['players', 'games', 'stats'])
-      setShowDeleteConfirm(null)
-      toast.success('Joueur supprimé avec succès')
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Erreur lors de la suppression')
-    }
-  })
-
   const toggleImmunityMutation = useMutation({
     mutationFn: toggleImmunity,
     onSuccess: () => {
@@ -90,21 +67,10 @@ export default function Players() {
   })
 
   const players = data?.players || []
-
-  // Filter players
-  const filteredPlayers = players.filter(player => {
-    const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    if (filter === 'all') return matchesSearch
-    if (filter === 'immune') return matchesSearch && player.has_immunity
-    if (filter === 'active') return matchesSearch && player.total_participations > 0
-    if (filter === 'inactive') return matchesSearch && player.total_participations === 0
-    
-    return matchesSearch
-  })
+  const displayPlayers = players
 
   // Sort players
-  const sortedPlayers = [...filteredPlayers].sort((a, b) => {
+  const sortedPlayers = [...displayPlayers].sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score
     if (b.total_participations !== a.total_participations) {
       return b.total_participations - a.total_participations
@@ -120,10 +86,6 @@ export default function Players() {
     }
     createPlayerMutation.mutate(newPlayerName.trim())
   }, [newPlayerName, createPlayerMutation])
-
-  const handleDeletePlayer = useCallback((playerId) => {
-    deletePlayerMutation.mutate(playerId)
-  }, [deletePlayerMutation])
 
   const handleToggleImmunity = useCallback((playerId, e) => {
     e.stopPropagation()
@@ -189,7 +151,7 @@ export default function Players() {
       >
         <div>
           <h1 className="text-2xl font-bold text-coffee-dark">Gestion des joueurs</h1>
-          <p className="text-coffee-light mt-1">Ajoutez, modifiez ou supprimez des joueurs</p>
+          <p className="text-coffee-light mt-1">Ajoutez ou modifiez des joueurs</p>
         </div>
       </motion.div>
 
@@ -200,34 +162,7 @@ export default function Players() {
         transition={{ delay: 0.1 }}
         className="card p-6"
       >
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-coffee-light" />
-            <input
-              type="text"
-              placeholder="Rechercher un joueur..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="input pl-10"
-            />
-          </div>
-
-          {/* Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-coffee-light" />
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="input"
-            >
-              <option value="all">Tous</option>
-              <option value="active">Actifs</option>
-              <option value="inactive">Inactifs</option>
-              <option value="immune">Avec immunité</option>
-            </select>
-          </div>
-
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* Add Player */}
           <form onSubmit={handleCreatePlayer} className="flex gap-2 w-full sm:w-auto">
             <input
@@ -250,7 +185,7 @@ export default function Players() {
 
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="text-sm text-coffee-light">
-            Total: {filteredPlayers.length} joueurs
+            Total: {displayPlayers.length} joueurs
           </span>
         </div>
       </motion.div>
@@ -343,14 +278,6 @@ export default function Players() {
                       <Pencil className="w-5 h-5" />
                     </button>
 
-                    {/* Delete */}
-                    <button
-                      onClick={() => setShowDeleteConfirm(player.id)}
-                      className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors duration-200"
-                      title="Supprimer"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -369,7 +296,7 @@ export default function Players() {
               Aucun joueur trouvé
             </h3>
             <p className="text-coffee-light text-sm">
-              {searchQuery ? 'Aucun résultat pour votre recherche' : 'Ajoutez votre premier joueur'}
+              Ajoutez votre premier joueur
             </p>
           </motion.div>
         )}
@@ -440,66 +367,6 @@ export default function Players() {
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowDeleteConfirm(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white rounded-2xl p-6 max-w-md w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-coffee-dark flex items-center gap-2">
-                  <Trash2 className="w-5 h-5 text-red-500" />
-                  Supprimer le joueur
-                </h3>
-                <button
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="p-1 rounded-lg hover:bg-coffee-cream transition-colors"
-                >
-                  <X className="w-5 h-5 text-coffee-dark" />
-                </button>
-              </div>
-
-              <div className="mb-6">
-                <p className="text-coffee-dark">
-                  Êtes-vous sûr de vouloir supprimer ce joueur ?
-                </p>
-                <p className="text-coffee-light text-sm mt-2">
-                  Cette action est irréversible et supprimera toutes ses statistiques.
-                </p>
-              </div>
-
-              <div className="flex gap-3 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="btn btn-secondary"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeletePlayer(showDeleteConfirm)}
-                  disabled={deletePlayerMutation.isLoading}
-                  className="btn btn-error"
-                >
-                  {deletePlayerMutation.isLoading ? 'Suppression...' : 'Supprimer'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }

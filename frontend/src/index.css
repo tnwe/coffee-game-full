@@ -63,6 +63,15 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
 body {
   background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   color: var(--text-primary);
@@ -416,6 +425,7 @@ body {
 
 /* Cards */
 .card {
+  min-width: 0;
   background: white;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
@@ -1053,30 +1063,4 @@ body {
 @keyframes skeleton-loading {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
-}
-
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary: #1a1a1a;
-    --bg-secondary: #2a2a2a;
-    --bg-tertiary: #3a3a3a;
-    --text-primary: #f5f5f5;
-    --text-secondary: #d4d4d4;
-    --text-muted: #a3a3a3;
-  }
-  
-  .card,
-  .input {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-  }
-  
-  .input {
-    border-color: var(--bg-tertiary);
-  }
-  
-  .navbar {
-    background: var(--bg-secondary);
-  }
 }
