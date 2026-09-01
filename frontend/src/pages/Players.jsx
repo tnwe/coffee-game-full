@@ -212,20 +212,12 @@ export default function Players() {
                     {index + 1}
                   </span>
 
-                  {/* Avatar */}
-                  <div className={clsx(
-                    "w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-sm",
-                    player.has_immunity ? 'bg-amber-500 ring-2 ring-amber-500/50' : 'bg-coffee-light'
-                  )}>
-                    {player.name.charAt(0)}
-                  </div>
-
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-coffee-dark truncate">
                       {player.name}
                     </h3>
-                    <div className="flex flex-wrap gap-3 mt-1">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
                       <span className="text-sm text-coffee-light">
                         <CreditCard className="w-3 h-3 inline" /> {player.total_paid || 0}
                       </span>

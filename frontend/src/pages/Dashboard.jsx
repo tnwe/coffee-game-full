@@ -64,7 +64,9 @@ export default function Dashboard() {
 
   const topPayers = stats?.top_payers?.slice(0, 3) || []
   const topFetchers = stats?.top_fetchers?.slice(0, 3) || []
-  const topScores = stats?.top_scores?.slice(0, 3) || []
+  const topScores = stats?.top_scores?.filter(score =>
+    stats.players?.some(player => player.player_name === score.name && player.participations >= 5)
+  ).slice(0, 3) || []
 
   const isLoading = statsLoading || gamesLoading || playersLoading
 
@@ -111,19 +113,11 @@ export default function Dashboard() {
       >
         <StatCard
           icon={<Coffee className="w-6 h-6" />}
-          title="Parties totales"
           value={stats?.total_games || 0}
-          subtitle="Session de café"
+          subtitle="Parties jouées"
           color="amber"
         />
         
-        <StatCard
-          icon={<Users className="w-6 h-6" />}
-          title="Joueurs"
-          value={players?.total || 0}
-          subtitle="Participants"
-          color="blue"
-        />
         
         <StatCard
           icon={<Calendar className="w-6 h-6" />}
@@ -132,14 +126,7 @@ export default function Dashboard() {
           subtitle="Total"
           color="green"
         />
-        
-        <StatCard
-          icon={<TrendingUp className="w-6 h-6" />}
-          title="Doubletes"
-          value={`${stats?.total_doublettes || 0} (${Math.round((stats?.doublette_percentage || 0))}%)`}
-          subtitle="Payer = Chercheur"
-          color="purple"
-        />
+
       </motion.div>
 
       {/* Today's Game */}

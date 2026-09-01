@@ -1,12 +1,9 @@
 import { useState } from 'react'
 import { motion, MotionConfig } from 'framer-motion'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
-  ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
-} from 'recharts'
-import { 
-  BarChart3, Users, CreditCard, HandPlatter, Trophy, Calendar, TrendingUp,
-  Filter, Download, ArrowUp, ArrowDown
+  BarChart3, Users, CreditCard, HandPlatter, Trophy, TrendingUp,
+  Filter
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -32,7 +29,6 @@ const metricOptions = [
 
 export default function Stats() {
   const [activeMetric, setActiveMetric] = useState('score')
-  const [chartType, setChartType] = useState('bar')
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['stats'],
@@ -54,6 +50,9 @@ export default function Stats() {
   const sortedPlayers = [...playerStats].sort((a, b) => 
     b[activeMetric] - a[activeMetric] || b.participations - a.participations
   )
+  const eligibleTopScores = stats?.top_scores?.filter(score =>
+    playerStats.some(player => player.name === score.name && player.participations >= 5)
+  ) || []
 
   // Bar chart data
   const barChartData = sortedPlayers.map(p => ({
@@ -61,15 +60,6 @@ export default function Stats() {
     fullName: p.name,
     value: activeMetric === 'normalized_score' ? p.normalizedScore : p[activeMetric]
   }))
-
-  // Pie chart data (top 8)
-  const pieChartData = sortedPlayers.slice(0, 8).map(p => ({
-    name: p.name,
-    value: activeMetric === 'normalized_score' ? p.normalizedScore : p[activeMetric]
-  }))
-
-  // Monthly stats
-  const monthlyData = stats?.monthly_stats || []
 
   // Format numbers
   const formatNumber = (value) => {
@@ -126,7 +116,6 @@ export default function Stats() {
       >
         <div>
           <h1 className="text-2xl font-bold text-coffee-dark">Statistiques</h1>
-          <p className="text-coffee-light mt-1">Analyse détaillée des performances</p>
         </div>
       </motion.div>
 
@@ -151,11 +140,11 @@ export default function Stats() {
         </div>
         <div className="card p-4 text-center">
           <p className="text-2xl font-bold text-amber-600">{formatNumber(stats?.total_doublettes || 0)}</p>
-          <p className="text-xs text-coffee-light mt-1">Doubletes</p>
+          <p className="text-xs text-coffee-light mt-1">Doublettes</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-2xl font-bold text-coffee-dark">{formatPercentage(stats?.doublette_percentage || 0)}</p>
-          <p className="text-xs text-coffee-light mt-1">% Doubletes</p>
+          <p className="text-xs text-coffee-light mt-1">% Doublettes</p>
         </div>
         <div className="card p-4 text-center">
           <p className="text-2xl font-bold text-coffee-dark">{playerStats.length}</p>
@@ -192,29 +181,6 @@ export default function Stats() {
             ))}
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-sm font-medium text-coffee-dark">Type :</span>
-            <button
-              onClick={() => setChartType('bar')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                chartType === 'bar'
-                  ? 'bg-coffee-light text-white shadow-sm'
-                  : 'bg-white text-coffee-dark border border-coffee-light/20'
-              }`}
-            >
-              Barres
-            </button>
-            <button
-              onClick={() => setChartType('pie')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                chartType === 'pie'
-                  ? 'bg-coffee-light text-white shadow-sm'
-                  : 'bg-white text-coffee-dark border border-coffee-light/20'
-              }`}
-            >
-              Camembert
-            </button>
-          </div>
         </div>
       </motion.div>
 
@@ -232,11 +198,9 @@ export default function Stats() {
           </h3>
         </div>
 
-        {chartType === 'bar' ? (
-          <div className="overflow-x-auto">
-            <div style={{ height: `${Math.max(520, barChartData.length * 34)}px`, minWidth: '640px' }}>
+        <div style={{ height: `${Math.max(360, barChartData.length * 34)}px` }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barChartData} layout="vertical">
+              <BarChart data={barChartData} layout="vertical" margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e8d5c4" strokeWidth={1} />
                 <XAxis 
                   type="number" 
@@ -246,9 +210,10 @@ export default function Stats() {
                 <YAxis 
                   dataKey="name" 
                   type="category" 
-                  width={160}
+                  width={90}
                   stroke="#4a2c2a"
                   tick={{ fontSize: 12, fill: '#4a2c2a' }}
+                  tickFormatter={(name) => name.length > 13 ? `${name.slice(0, 12)}...` : name}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ color: '#4a2c2a' }} />
@@ -262,41 +227,7 @@ export default function Stats() {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            </div>
-          </div>
-        ) : (
-          <div className="h-80 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={120}
-                  fill="#8884d8"
-                  dataKey="value"
-                  isAnimationActive={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  {pieChartData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend 
-                  wrapperStyle={{ color: '#4a2c2a' }}
-                  layout="vertical"
-                  align="right"
-                  verticalAlign="middle"
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        </div>
       </motion.div>
 
       {/* Detailed Leaderboard */}
@@ -375,83 +306,6 @@ export default function Stats() {
             </tbody>
           </table>
         </div>
-      </motion.div>
-
-      {/* Monthly Statistics */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="card p-6"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-semibold text-coffee-dark flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Statistiques mensuelles
-          </h3>
-        </div>
-
-        {monthlyData.length > 0 ? (
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e8d5c4" strokeWidth={1} />
-                <XAxis 
-                  dataKey="month" 
-                  stroke="#4a2c2a"
-                  tick={{ fontSize: 12, fill: '#4a2c2a' }}
-                />
-                <YAxis 
-                  stroke="#4a2c2a"
-                  tick={{ fontSize: 12, fill: '#4a2c2a' }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    background: 'white',
-                    border: '1px solid #e8d5c4',
-                    borderRadius: '0.75rem',
-                    color: '#4a2c2a'
-                  }}
-                />
-                <Legend wrapperStyle={{ color: '#4a2c2a' }} />
-                <Line 
-                  type="monotone" 
-                  dataKey="games_count" 
-                  name="Parties" 
-                  stroke="#8b4513" 
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                  isAnimationActive={false}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="participants_count" 
-                  name="Participants" 
-                  stroke="#a0522d" 
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                  isAnimationActive={false}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="doublettes_count" 
-                  name="Doubletes" 
-                  stroke="#cd853f" 
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <p className="text-coffee-light text-center py-8">
-            Pas de données mensuelles disponibles
-          </p>
-        )}
       </motion.div>
 
       {/* Top Performers */}
@@ -539,7 +393,7 @@ export default function Stats() {
             Meilleur Score Normalisé
           </h4>
           <div className="space-y-3">
-            {stats?.top_scores?.slice(0, 5).map((score, index) => (
+            {eligibleTopScores.slice(0, 5).map((score, index) => (
               <motion.div 
                 key={score.name}
                 initial={{ opacity: 0, x: -20 }}
