@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Coffee, Users, CreditCard, HandPlatter, Check, X, Plus, Minus,
-  Shuffle, Target, Calendar, Clock, Play, RotateCcw
+  Shuffle, Target, Calendar, Clock, Play, RotateCcw, Shield
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -52,6 +52,8 @@ export default function NewGame() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [doublette, setDoublette] = useState(false)
   const [immunityUsed, setImmunityUsed] = useState({})
+  const [immunityInPlay, setImmunityInPlay] = useState({})
+  const [immunityPromptPlayer, setImmunityPromptPlayer] = useState(null)
 
   const { data: playersData, isLoading: playersLoading } = useQuery({
     queryKey: ['players'],
@@ -90,34 +92,48 @@ export default function NewGame() {
   // Check if date already exists
   const dateExists = existingDates.includes(date)
 
-  // Check if player has immunity
-  const checkImmunity = useCallback((playerId) => {
-    const player = players.find(p => p.id === playerId)
-    return player?.has_immunity || false
-  }, [players])
-
   const handleTogglePlayer = useCallback((playerId) => {
+    const player = players.find(p => p.id === playerId)
+    const isSelected = !!selectedPlayers[playerId]
+
+    if (!isSelected && mode === 'draw' && step === 'payer' && player?.has_immunity && !immunityUsed[playerId]) {
+      setImmunityPromptPlayer(player)
+    }
+
     setSelectedPlayers(prev => ({
       ...prev,
       [playerId]: !prev[playerId]
     }))
+
+    if (isSelected) {
+      setImmunityInPlay(prev => {
+        const next = { ...prev }
+        delete next[playerId]
+        return next
+      })
+    }
+
     // Clear selections if player is deselected
     if (payer === playerId) setPayer(null)
     if (fetcher === playerId) setFetcher(null)
-  }, [payer, fetcher])
+  }, [players, selectedPlayers, mode, step, immunityUsed, payer, fetcher])
 
   const handleWheelResult = useCallback((winner) => {
     if (step === 'payer') {
-      const hasImmunity = checkImmunity(winner.id)
+      const hasImmunity = immunityInPlay[winner.id] && !immunityUsed[winner.id]
       
       if (hasImmunity) {
-        // Remove immunity and restart
         updateImmunityMutation.mutate({ playerId: winner.id })
         setImmunityUsed(prev => ({ ...prev, [winner.id]: true }))
-        toast.info(`${winner.name} a l'immunité ! Nouveau tirage...`)
+        toast.info(`${winner.name} utilise son immunité. Nouveau tirage...`)
         setTimeout(() => {
           setPayer(null)
-        }, 1000)
+          setImmunityInPlay(prev => {
+            const next = { ...prev }
+            delete next[winner.id]
+            return next
+          })
+        }, 2200)
       } else {
         setPayer(winner.id)
         setStep('fetcher')
@@ -131,7 +147,7 @@ export default function NewGame() {
         toast.success('Doublette ! 🎉')
       }
     }
-  }, [step, payer, checkImmunity, updateImmunityMutation])
+  }, [step, payer, immunityInPlay, immunityUsed, updateImmunityMutation])
 
   const resetGame = useCallback(() => {
     setSelectedPlayers({})
@@ -140,7 +156,23 @@ export default function NewGame() {
     setStep('payer')
     setDoublette(false)
     setImmunityUsed({})
+    setImmunityInPlay({})
+    setImmunityPromptPlayer(null)
     setShowConfetti(false)
+  }, [])
+
+  const confirmImmunityUse = useCallback(() => {
+    if (!immunityPromptPlayer) return
+
+    setImmunityInPlay(prev => ({
+      ...prev,
+      [immunityPromptPlayer.id]: true
+    }))
+    setImmunityPromptPlayer(null)
+  }, [immunityPromptPlayer])
+
+  const keepImmunity = useCallback(() => {
+    setImmunityPromptPlayer(null)
   }, [])
 
   const handleSubmit = useCallback(async () => {
@@ -316,6 +348,7 @@ export default function NewGame() {
             const isFetcher = fetcher === player.id
             const hasImmunity = player.has_immunity
             const wasImmunityUsed = immunityUsed[player.id]
+            const isImmunityInPlay = immunityInPlay[player.id]
             
             return (
               <motion.button
@@ -375,7 +408,8 @@ export default function NewGame() {
                   )}
                   {hasImmunity && !wasImmunityUsed && (
                     <span className="badge badge-warning text-xs">
-                      🛡️ Immunité
+                      <Shield className="w-3 h-3" />
+                      {isImmunityInPlay ? 'Immunité en jeu' : 'Immunité disponible'}
                     </span>
                   )}
                 </div>
@@ -421,7 +455,10 @@ export default function NewGame() {
 
             {/* Wheel */}
             <Wheel
-              players={selectedPlayerList}
+              players={selectedPlayerList.map(player => ({
+                ...player,
+                has_immunity: step === 'payer' && Boolean(immunityInPlay[player.id])
+              }))}
               onResult={handleWheelResult}
               title={step === 'payer' ? 'Qui paie ?' : 'Qui cherche ?'}
               disabled={step === 'done'}
@@ -655,6 +692,66 @@ export default function NewGame() {
                 {isSubmitting ? 'Enregistrement...' : 'Enregistrer la partie'}
               </motion.button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Immunity confirmation */}
+      <AnimatePresence>
+        {immunityPromptPlayer && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-coffee-dark/50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="presentation"
+            onClick={keepImmunity}
+          >
+            <motion.div
+              className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="immunity-dialog-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                  <Shield className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 id="immunity-dialog-title" className="text-lg font-bold text-coffee-dark">
+                    Mettre l'immunité en jeu ?
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-coffee-light">
+                    {immunityPromptPlayer.name} peut éviter de payer si son nom sort au prochain tirage du payeur.
+                  </p>
+                  <p className="mt-2 text-xs text-coffee-light/80">
+                    L'immunité ne s'appliquera pas au tirage du chercheur et restera disponible si elle n'est pas tirée.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={keepImmunity}
+                  className="btn btn-secondary"
+                >
+                  La garder
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmImmunityUse}
+                  className="btn btn-primary gap-2"
+                >
+                  <Shield className="h-4 w-4" />
+                  La mettre en jeu
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

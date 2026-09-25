@@ -17,6 +17,7 @@ def seed_players():
             "Sabine",
             "Thibault",
             "Abas",
+            "Lamine",
             "Nicolas",
             "Andr",
             "Sandrine",
