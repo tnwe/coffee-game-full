@@ -1,6 +1,7 @@
 name: Reset Immunities
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '1 0 * * 1'  # Chaque lundi à 00h01 (UTC)
 
