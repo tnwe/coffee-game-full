@@ -18,7 +18,7 @@ def get_db_session():
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     return SessionLocal()
 
-def reset_immunities_and_add_abas():
+def reset_immunities_and_add_lamine():
     db = get_db_session()
     try:
         # Remettre à zéro toutes les immunités
@@ -27,10 +27,10 @@ def reset_immunities_and_add_abas():
             player.has_immunity = False
         db.commit()
 
-        # Ajouter l'immunité d'Abas
-        abas = db.query(Player).filter(Player.name == "Abas").first()
-        if abas:
-            abas.has_immunity = True
+        # Ajouter l'immunité de Lamine
+        lamine = db.query(Player).filter(Player.name == "Lamine").first()
+        if lamine:
+            lamine.has_immunity = True
             db.commit()
 
         # Mettre à jour WeekState pour indiquer que la remise à zéro a été faite aujourd'hui
@@ -41,7 +41,7 @@ def reset_immunities_and_add_abas():
             db.add(new_state)
             db.commit()
 
-        print("Immunités remises à zéro et immunité d'Abas ajoutée.")
+        print("Immunités remises à zéro et immunité de Lamine ajoutée.")
     except Exception as e:
         print(f"Erreur : {e}")
         db.rollback()
@@ -49,4 +49,4 @@ def reset_immunities_and_add_abas():
         db.close()
 
 if __name__ == "__main__":
-    reset_immunities_and_add_abas()
+    reset_immunities_and_add_lamine()
