@@ -1,6 +1,7 @@
 name: Reset Immunities
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '1 0 * * 1'  # Chaque lundi à 00h01 (UTC)
 
@@ -19,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install sqlalchemy psycopg2-binary
+          pip install -r backend/requirements.txt
 
       - name: Run reset script
         env:
